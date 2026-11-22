@@ -387,7 +387,7 @@ function ResponseSection({
   isRecording: boolean
   onToggleRecording: () => void
   speechMessage: string
-  onSubmit: () => void
+  onSubmit: () => Promise<void>
   submitted: boolean
   status: PracticeStatus
   onClearAnswer: () => void
@@ -510,9 +510,7 @@ export function PracticeWorkspace() {
   const setAnswer = usePracticeStore((state) => state.setAnswer)
   const setStatus = usePracticeStore((state) => state.setStatus)
   const setSpeechMessage = usePracticeStore((state) => state.setSpeechMessage)
-  const submitMockFeedback = usePracticeStore(
-    (state) => state.submitMockFeedback
-  )
+  const submitFeedback = usePracticeStore((state) => state.submitFeedback)
 
   const isRecording = status === "recording"
   const submitted = status === "feedback" && feedback !== null
@@ -612,10 +610,9 @@ export function PracticeWorkspace() {
     }
   }
 
-  function handleSubmit() {
-    setStatus("submitting")
+  async function handleSubmit() {
     recognitionRef.current?.stop()
-    submitMockFeedback()
+    await submitFeedback()
   }
 
   function handleClearAnswer() {

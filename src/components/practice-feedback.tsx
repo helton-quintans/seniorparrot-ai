@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { PracticeFeedback as PracticeFeedbackData } from "@/lib/schemas/feedback"
+import { FormattedFeedbackText } from "@/components/formatted-feedback-text"
 
 type DisplayNote = {
   positive: boolean
@@ -124,7 +125,7 @@ function TechnicalCard({
                   <span className="text-[9px] font-bold">!</span>
                 )}
               </span>
-              {note.text}
+              {note.text.trim()}
             </li>
           ))}
         </ul>
@@ -161,7 +162,7 @@ function DeliveryCard({ items }: { items: DisplayDeliveryItem[] }) {
                   {note.label}
                 </p>
                 <p className="mt-1 text-[11px] leading-[1.55] text-zinc-500">
-                  {note.text}
+                  {note.text.trim()}
                 </p>
               </div>
             </div>
@@ -203,12 +204,12 @@ function ModelAnswerCard({
         </div>
       </CardHeader>
       <CardContent className="px-5 pt-4 pb-5">
-        <blockquote className="border-l border-primary/30 pl-3.5 text-xs leading-[1.75] text-zinc-400">
-          {answer}
-        </blockquote>
-        <div className="mt-4 flex items-center gap-2 border-t border-white/6 pt-3 text-[10px] text-zinc-600">
-          <Sparkles className="size-3.5 text-primary/70" />
-          {takeaway}
+        <div className="border-l-2 border-primary/40 pl-3.5">
+          <FormattedFeedbackText content={answer} />
+        </div>
+        <div className="mt-4 flex items-center gap-2 border-t border-white/6 pt-3 text-[10px] text-zinc-500">
+          <Sparkles className="size-3.5 shrink-0 text-primary/70" />
+          <span>{takeaway.trim()}</span>
         </div>
       </CardContent>
     </Card>
@@ -224,9 +225,10 @@ export function PracticeFeedback({
 }) {
   const activeFeedback = submitted && feedback ? feedback : null
 
+  // Ajustado: nota direta sem dividir por 10
   const technicalScore = activeFeedback
-  ? Math.round(activeFeedback.technicalContent.score / 10)
-  : 8
+    ? activeFeedback.technicalContent.score
+    : 8
 
   const technicalNotes: DisplayNote[] = activeFeedback
     ? [
