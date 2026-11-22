@@ -14,6 +14,7 @@ import {
   MicOff,
   PanelsTopLeft,
   Sparkles,
+  Trash2,
   UserRound,
   Volume2,
 } from "lucide-react"
@@ -35,6 +36,7 @@ import {
   usePracticeStore,
   type LevelId,
   type TopicId,
+  type PracticeStatus,
 } from "@/stores/practice-store"
 
 type Question = { category: string; prompt: string }
@@ -377,6 +379,8 @@ function ResponseSection({
   speechMessage,
   onSubmit,
   submitted,
+  status,
+  onClearAnswer,
 }: {
   response: string
   onResponseChange: (value: string) => void
@@ -385,8 +389,15 @@ function ResponseSection({
   speechMessage: string
   onSubmit: () => void
   submitted: boolean
+  status: PracticeStatus
+  onClearAnswer: () => void
 }) {
   const wordCount = response.trim() ? response.trim().split(/\s+/).length : 0
+  const charCount = response.length
+  const charLimit = 4000
+  const isAtLimit = charCount >= charLimit
+  const isNearLimit = charCount >= charLimit * 0.8 && !isAtLimit
+
   return (
     <section aria-labelledby="response-heading">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2 px-0.5">
@@ -428,8 +439,19 @@ function ResponseSection({
               <span id="response-help" className="text-[11px] text-zinc-600">
                 {wordCount} {wordCount === 1 ? "word" : "words"}
               </span>
+              {isNearLimit && (
+                <span className="text-[11px] text-amber-400">
+                  — {charCount}/{charLimit} chars
+                </span>
+              )}
+              {isAtLimit && (
+                <span className="text-[11px] text-red-500">
+                  — {charCount}/{charLimit} chars (limit reached)
+                </span>
+              )}
               <Button
                 onClick={onSubmit}
+                disabled={status !== "idle" || !response.trim() || isAtLimit}
                 size="lg"
                 className="h-10 w-full rounded-xl bg-primary px-4 font-semibold text-[#061414] hover:bg-[#7af2dd] sm:w-auto"
               >
@@ -441,6 +463,17 @@ function ResponseSection({
                 {submitted ? "Answer submitted" : "Submit Answer for Feedback"}
                 {!submitted && <ArrowRight data-icon="inline-end" />}
               </Button>
+{(response.length > 0 || status === "feedback" || status === "error") && (
+              <Button
+                onClick={onClearAnswer}
+                disabled={status === "submitting"}
+                size="lg"
+                className="h-10 w-full rounded-xl bg-destructive px-4 font-semibold text-white hover:bg-[var(--destructive)] sm:w-auto mt-2"
+              >
+                <Trash2 data-icon="inline-start" />
+                Clear Answer
+              </Button>
+            )}
             </div>
             <p
               id="response-status"
@@ -506,12 +539,13 @@ export function PracticeWorkspace() {
   }
 
   function handleGenerateQuestion() {
+    if (status === "submitting") return
     stopRecognition()
     generateNextQuestion()
   }
 
   function handleToggleRecording() {
-    if (isRecording) {
+    if (isRecording || status === "submitting") {
       recognitionRef.current?.stop()
       setStatus("idle")
       return
@@ -579,8 +613,14 @@ export function PracticeWorkspace() {
   }
 
   function handleSubmit() {
+    setStatus("submitting")
     recognitionRef.current?.stop()
     submitMockFeedback()
+  }
+
+  function handleClearAnswer() {
+    recognitionRef.current?.stop()
+    usePracticeStore.getState().clearAnswer()
   }
 
   return (
@@ -636,6 +676,8 @@ export function PracticeWorkspace() {
           speechMessage={speechMessage}
           onSubmit={handleSubmit}
           submitted={submitted}
+          status={status}
+          onClearAnswer={handleClearAnswer}
         />
 
         <div className="border-t border-white/[0.07] pt-7 sm:pt-8">

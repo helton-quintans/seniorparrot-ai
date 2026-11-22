@@ -7,7 +7,9 @@ import {
 export type TopicId = "frontend" | "react" | "system-design" | "behavioral"
 export type LevelId = "senior" | "staff"
 
-type PracticeStatus =
+const MAX_ANSWER_CHARS = 4000
+
+export type PracticeStatus =
   | "idle"
   | "recording"
   | "submitting"
@@ -66,6 +68,7 @@ interface PracticeState {
   setSpeechMessage: (message: string) => void
   submitMockFeedback: () => boolean
   resetSession: () => void
+  clearAnswer: () => void
 }
 
 export const usePracticeStore = create<PracticeState>((set, get) => ({
@@ -101,12 +104,27 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
       feedback: null,
     })),
 
-  setAnswer: (answer) =>
-    set((state) => ({
-      answer,
-      feedback: null,
-      status: state.status === "feedback" ? "idle" : state.status,
-    })),
+setAnswer: (nextAnswer) =>
+    set((state) => {
+      if (nextAnswer.length > MAX_ANSWER_CHARS) {
+        return {
+          answer: nextAnswer.slice(0, MAX_ANSWER_CHARS),
+          feedback: null,
+          status: "error",
+          speechMessage: `Answer is capped at ${MAX_ANSWER_CHARS} characters. Extra text was trimmed.`,
+        }
+      }
+
+      const shouldResetStatus =
+        state.status === "feedback" || state.status === "error"
+
+      return {
+        answer: nextAnswer,
+        feedback: null,
+        status: shouldResetStatus ? "idle" : state.status,
+        speechMessage: state.status === "error" ? "" : state.speechMessage,
+      }
+    }),
 
   setStatus: (status) => set({ status }),
 
@@ -118,6 +136,13 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
       set({
         status: "error",
         speechMessage: "Write or dictate an answer before submitting.",
+      })
+      return false
+    }
+    if (get().answer.length > MAX_ANSWER_CHARS) {
+      set({
+        status: "error",
+        speechMessage: `Answer exceeds ${MAX_ANSWER_CHARS} character limit. Please trim your response.`,
       })
       return false
     }
@@ -141,6 +166,14 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
   },
 
   resetSession: () =>
+    set({
+      answer: "",
+      status: "idle",
+      speechMessage: "",
+      feedback: null,
+    }),
+
+  clearAnswer: () =>
     set({
       answer: "",
       status: "idle",
