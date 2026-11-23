@@ -56,6 +56,7 @@ interface PracticeState {
   topic: TopicId
   level: LevelId
   questionIndex: number
+  question: string
   answer: string
   status: PracticeStatus
   speechMessage: string
@@ -69,12 +70,15 @@ interface PracticeState {
   submitMockFeedback: () => boolean
   resetSession: () => void
   clearAnswer: () => void
+  submitFeedback: () => Promise<void>
 }
 
 export const usePracticeStore = create<PracticeState>((set, get) => ({
   topic: "system-design",
   level: "senior",
   questionIndex: 0,
+  question:
+    "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
   answer: "",
   status: "idle",
   speechMessage: "",
@@ -84,6 +88,8 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
     set({
       topic,
       questionIndex: 0,
+      question:
+        "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
       answer: "",
       status: "idle",
       speechMessage: "",
@@ -163,6 +169,68 @@ setAnswer: (nextAnswer) =>
         "This is a sample review. A live AI evaluation is not connected yet.",
     })
     return true
+  },
+
+  submitFeedback: async () => {
+    const state = get()
+
+    // Validate answer before making request
+    if (!state.answer.trim()) {
+      set({
+        feedback: null,
+        status: "error",
+        speechMessage: "Write or dictate an answer before submitting.",
+      })
+      return
+    }
+    if (state.answer.length > MAX_ANSWER_CHARS) {
+      set({
+        feedback: null,
+        status: "error",
+        speechMessage: `Answer exceeds ${MAX_ANSWER_CHARS} character limit. Please trim your response.`,
+      })
+      return
+    }
+
+    set({ status: "submitting" })
+
+    try {
+      const response = await fetch("/api/practice/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: state.question,
+          topic: state.topic,
+          level: state.level,
+          answer: state.answer,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        set({
+          feedback: data,
+          status: "feedback",
+          speechMessage: "",
+        })
+      } else {
+        const errData = await response.json().catch(() => ({}))
+        set({
+          feedback: null,
+          status: "error",
+          speechMessage: errData.error || "Erro ao obter feedback. Tente novamente.",
+        })
+      }
+    } catch {
+      set({
+        feedback: null,
+        status: "error",
+        speechMessage:
+          "Erro de rede. Verifique a conexão ou tente novamente mais tarde.",
+      })
+    }
   },
 
   resetSession: () =>

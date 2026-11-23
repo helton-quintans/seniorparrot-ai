@@ -48,10 +48,10 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   onresult:
-    | ((event: {
-        results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-      }) => void)
-    | null
+  | ((event: {
+    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+  }) => void)
+  | null
   onerror: (() => void) | null
   onend: (() => void) | null
 }
@@ -325,11 +325,10 @@ function RecordingButton({
         onClick={onClick}
         aria-label={isRecording ? "Stop recording" : "Start speech recognition"}
         aria-pressed={isRecording}
-        className={`record-button relative flex size-[76px] items-center justify-center rounded-full border transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d0f12] sm:size-[86px] ${
-          isRecording
+        className={`record-button relative flex size-[76px] items-center justify-center rounded-full border transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d0f12] sm:size-[86px] ${isRecording
             ? "is-recording border-rose-400/50 bg-rose-500/10 text-rose-300"
             : "border-primary/25 bg-primary/[0.09] text-primary hover:scale-[1.04] hover:border-primary/50 hover:bg-primary/[0.15]"
-        }`}
+          }`}
       >
         {isRecording ? (
           <MicOff className="relative z-10 size-6" />
@@ -345,18 +344,16 @@ function RecordingButton({
         <p className="mt-1 text-[11px] text-zinc-500">Web Speech API</p>
       </div>
       <div
-        className={`flex h-5 items-center gap-[3px] ${
-          isRecording ? "" : "opacity-35"
-        }`}
+        className={`flex h-5 items-center gap-[3px] ${isRecording ? "" : "opacity-35"
+          }`}
         aria-hidden="true"
       >
         {[10, 18, 13, 22, 14, 19, 9, 16, 11, 20, 12, 17, 8].map(
           (height, index) => (
             <span
               key={index}
-              className={`visualizer-bar ${
-                isRecording ? "visualizer-bar-active" : ""
-              }`}
+              className={`visualizer-bar ${isRecording ? "visualizer-bar-active" : ""
+                }`}
               style={
                 {
                   "--bar-height": `${height}px`,
@@ -387,7 +384,7 @@ function ResponseSection({
   isRecording: boolean
   onToggleRecording: () => void
   speechMessage: string
-  onSubmit: () => void
+  onSubmit: () => Promise<void>
   submitted: boolean
   status: PracticeStatus
   onClearAnswer: () => void
@@ -463,25 +460,24 @@ function ResponseSection({
                 {submitted ? "Answer submitted" : "Submit Answer for Feedback"}
                 {!submitted && <ArrowRight data-icon="inline-end" />}
               </Button>
-{(response.length > 0 || status === "feedback" || status === "error") && (
-              <Button
-                onClick={onClearAnswer}
-                disabled={status === "submitting"}
-                size="lg"
-                className="h-10 w-full rounded-xl bg-destructive px-4 font-semibold text-white hover:bg-[var(--destructive)] sm:w-auto mt-2"
-              >
-                <Trash2 data-icon="inline-start" />
-                Clear Answer
-              </Button>
-            )}
+              {(response.length > 0 || status === "feedback" || status === "error") && (
+                <Button
+                  onClick={onClearAnswer}
+                  disabled={status === "submitting"}
+                  size="lg"
+                  className="h-10 w-full rounded-xl bg-destructive px-4 font-semibold text-white hover:bg-[var(--destructive)] sm:w-auto mt-2"
+                >
+                  <Trash2 data-icon="inline-start" />
+                  Clear Answer
+                </Button>
+              )}
             </div>
             <p
               id="response-status"
               role="status"
               aria-live="polite"
-              className={`mt-2 min-h-4 text-[11px] ${
-                speechMessage ? "text-primary/80" : "text-zinc-600"
-              }`}
+              className={`mt-2 min-h-4 text-[11px] ${speechMessage ? "text-primary/80" : "text-zinc-600"
+                }`}
             >
               {speechMessage ||
                 (submitted ? "Sample feedback below is ready to review." : "")}
@@ -510,9 +506,7 @@ export function PracticeWorkspace() {
   const setAnswer = usePracticeStore((state) => state.setAnswer)
   const setStatus = usePracticeStore((state) => state.setStatus)
   const setSpeechMessage = usePracticeStore((state) => state.setSpeechMessage)
-  const submitMockFeedback = usePracticeStore(
-    (state) => state.submitMockFeedback
-  )
+  const submitFeedback = usePracticeStore((state) => state.submitFeedback)
 
   const isRecording = status === "recording"
   const submitted = status === "feedback" && feedback !== null
@@ -612,10 +606,9 @@ export function PracticeWorkspace() {
     }
   }
 
-  function handleSubmit() {
-    setStatus("submitting")
+  async function handleSubmit() {
     recognitionRef.current?.stop()
-    submitMockFeedback()
+    await submitFeedback()
   }
 
   function handleClearAnswer() {
@@ -701,7 +694,11 @@ export function PracticeWorkspace() {
               demo state.
             </span>
           </div>
-          <PracticeFeedback submitted={submitted} feedback={feedback} />
+          <PracticeFeedback
+            key={feedback ? JSON.stringify(feedback.seniorModelAnswer.answer) : "empty"}
+            submitted={submitted}
+            feedback={feedback}
+          />
         </div>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4 text-[11px] text-zinc-600">
