@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import type { CSSProperties } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
 import {
   ArrowRight,
   AudioLines,
@@ -31,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { FormattedFeedbackText } from "@/components/formatted-feedback-text"
 import { PracticeFeedback } from "@/components/practice-feedback"
 import { ThinkingFace } from "@/components/thinking-face"
 import { cn } from "@/lib/utils"
@@ -41,7 +41,11 @@ import {
   type PracticeStatus,
 } from "@/stores/practice-store"
 
-type Question = { category: string; prompt: string }
+type Question = {
+  category: string
+  prompt: string
+  translation: string
+}
 
 type SpeechRecognitionLike = {
   lang: string
@@ -73,11 +77,15 @@ const questions: Record<TopicId, Question[]> = {
       category: "Frontend Architecture",
       prompt:
         "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
+      translation:
+        "Como você estruturaria uma aplicação React de grande porte para que as equipes de produto pudessem entregar funcionalidades de forma independente, sem duplicar sistemas de design ou criar dependências fortes entre funcionalidades?",
     },
     {
       category: "Frontend Architecture",
       prompt:
         "A core application bundle has grown significantly as the product scaled. How would you identify the biggest opportunities to improve load time without compromising the user experience?",
+      translation:
+        "O bundle principal da aplicação cresceu bastante à medida que o produto escalou. Como você identificaria as melhores oportunidades para reduzir o tempo de carregamento sem comprometer a experiência do usuário?",
     },
   ],
   react: [
@@ -85,11 +93,15 @@ const questions: Record<TopicId, Question[]> = {
       category: "React Internals",
       prompt:
         "A complex screen feels sluggish during user interactions even though its components use memoization. How would you investigate the render path and decide what to optimize?",
+      translation:
+        "Uma tela complexa parece lenta durante as interações, embora seus componentes usem memoização. Como você investigaria o fluxo de renderização e decidiria o que otimizar?",
     },
     {
       category: "React Internals",
       prompt:
         "Explain how concurrent rendering changes the way you think about expensive work, effects, and state updates in a React application.",
+      translation:
+        "Explique como a renderização concorrente muda a forma de pensar sobre operações custosas, effects e atualizações de estado em uma aplicação React.",
     },
   ],
   "system-design": [
@@ -97,11 +109,15 @@ const questions: Record<TopicId, Question[]> = {
       category: "System Design",
       prompt:
         "Imagine you are building a real-time dashboard with high-frequency updates. How would you prevent excessive re-renders and structure the state management architecture?",
+      translation:
+        "Imagine que você está criando um dashboard em tempo real com atualizações frequentes. Como evitaria renderizações excessivas e estruturaria a arquitetura de gerenciamento de estado?",
     },
     {
       category: "System Design",
       prompt:
         "Design a frontend architecture for a dashboard that streams updates from thousands of devices. How would you balance data freshness, rendering cost, and resilience to reconnects?",
+      translation:
+        "Desenhe uma arquitetura frontend para um dashboard que recebe atualizações de milhares de dispositivos. Como equilibraria a atualização dos dados, o custo de renderização e a resiliência durante reconexões?",
     },
   ],
   behavioral: [
@@ -109,14 +125,22 @@ const questions: Record<TopicId, Question[]> = {
       category: "Behavioral (STAR)",
       prompt:
         "Tell me about a time you had to align several teams around a technical direction. How did you handle disagreement, and what changed because of your approach?",
+      translation:
+        "Conte sobre uma ocasião em que você precisou alinhar várias equipes em torno de uma direção técnica. Como lidou com as divergências e o que mudou por causa da sua abordagem?",
     },
     {
       category: "Behavioral (STAR)",
       prompt:
         "Describe a difficult technical decision you made with incomplete information. What trade-offs did you consider, and what did you learn from the outcome?",
+      translation:
+        "Descreva uma decisão técnica difícil que você tomou com informações incompletas. Quais trade-offs considerou e o que aprendeu com o resultado?",
     },
   ],
 }
+
+/* ============================================================================
+   HEADER, STEP HEADINGS & EMPTY STATES (READY FOR LOCAL SVG ASSETS)
+   ============================================================================ */
 
 function BrandMark() {
   return (
@@ -146,9 +170,12 @@ function AppHeader() {
           className="border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-medium tracking-[0.08em] text-zinc-400"
         >
           <span className="mr-1.5 inline-block size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
-          V1 PRACTICE
+          PRACTICE WORKSPACE
         </Badge>
-        <span className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden="true" />
+        <span
+          className="hidden h-6 w-px bg-white/10 sm:block"
+          aria-hidden="true"
+        />
         <Avatar className="size-9 border border-white/10 bg-[#1a2224] text-xs text-primary">
           <AvatarFallback className="bg-[#1a2224] font-semibold text-primary">
             HQ
@@ -158,6 +185,213 @@ function AppHeader() {
     </header>
   )
 }
+
+function StepHeading({
+  number,
+  title,
+  detail,
+  status = "standby",
+}: {
+  number: string
+  title: string
+  detail?: string
+  status?: "active" | "complete" | "standby"
+}) {
+  const indicatorStyles = {
+    active:
+      "border-primary/35 bg-primary/[0.08] text-primary shadow-[0_0_14px_-8px_rgb(94_234_212/70%)]",
+    complete: "border-zinc-700 bg-zinc-900 text-primary/75",
+    standby: "border-zinc-800 bg-[#101316] text-zinc-600",
+  }
+
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <span
+        aria-current={status === "active" ? "step" : undefined}
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] transition-colors",
+          indicatorStyles[status]
+        )}
+      >
+        {status === "complete" ? (
+          <Check className="size-3" aria-hidden="true" />
+        ) : (
+          number
+        )}
+      </span>
+      <div className="flex min-w-0 items-baseline gap-2.5">
+        <h2
+          className={cn(
+            "text-sm font-medium",
+            status === "standby" ? "text-zinc-500" : "text-zinc-200"
+          )}
+        >
+          {title}
+        </h2>
+        {detail && (
+          <span className="hidden text-xs text-zinc-600 sm:inline">
+            {detail}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Swap these placeholders with your local SVGs from /public/illustrations/
+function QuestionEmptyArtwork() {
+  return (
+    <svg
+      className="empty-state-art h-full w-full text-zinc-500"
+      viewBox="0 0 180 112"
+      role="img"
+      aria-label="Developer preparing with a laptop"
+      fill="none"
+    >
+      <path
+        d="M29 89h123M54 88l-4 9m76-9 4 9m-81 0h85"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M67 38c0-10 7-17 17-17s17 7 17 17v17H67V38Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M71 36c5 2 13 1 18-3 2 5 6 7 12 7M77 43h1m12 0h1m-11 6c2 2 5 2 7 0"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M62 78c1-12 7-19 17-21l5 6 7-6c10 2 16 9 17 21"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M35 64h27v18H35z" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  )
+}
+
+function ResponseEmptyArtwork() {
+  return (
+    <svg
+      className="empty-state-art h-full w-full text-zinc-500"
+      viewBox="0 0 180 112"
+      role="img"
+      aria-label="Workspace ready in standby"
+      fill="none"
+    >
+      <path
+        d="M31 91h118M51 90l-5 8m78-8 5 8m-78 0h82"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M78 32c0-9 6-15 15-15s15 6 15 15v10H78V32Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="M71 79c1-15 8-22 22-23 13 1 20 8 21 23l-8 8H78l-7-8Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M120 43h19v26h-19zM124 50h11m-11 5h8m-8 5h10"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function FeedbackEmptyArtwork() {
+  return (
+    <svg
+      className="empty-state-art h-full w-full text-zinc-500"
+      viewBox="0 0 180 112"
+      role="img"
+      aria-label="Growth chart waiting for submission"
+      fill="none"
+    >
+      <path
+        d="M35 89h111M47 88V69h17v19m10 0V55h17v33m10 0V42h17v46m10 0V30h17v58"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m46 60 22-11 18 3 18-18 17 2 19-17"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m133 19 8-1-2 8"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function EmptyStateCard({
+  variant,
+  title,
+  description,
+  compact = false,
+}: {
+  variant: "question" | "response" | "feedback"
+  title: string
+  description: string
+  compact?: boolean
+}) {
+  const Artwork =
+    variant === "question"
+      ? QuestionEmptyArtwork
+      : variant === "response"
+        ? ResponseEmptyArtwork
+        : FeedbackEmptyArtwork
+
+  return (
+    <div
+      className={cn(
+        "empty-state flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-[#101316] text-center",
+        compact
+          ? "min-h-[184px] px-5 py-6"
+          : "min-h-[252px] px-5 py-8 sm:min-h-[270px]"
+      )}
+    >
+      <div className="empty-state-art-frame flex size-32 shrink-0 items-center justify-center sm:size-36">
+        <Artwork />
+      </div>
+      <h3 className="mt-2 text-sm font-medium tracking-[-0.01em] text-zinc-200">
+        {title}
+      </h3>
+      <p className="mt-1.5 max-w-[360px] text-xs leading-5 text-zinc-500">
+        {description}
+      </p>
+    </div>
+  )
+}
+
+/* ============================================================================
+   CONFIGURATION, QUESTION CARD & UNIFIED RESPONSE COMPOSER
+   ============================================================================ */
 
 function ConfigurationBar({
   topic,
@@ -248,7 +482,7 @@ function ConfigurationBar({
         <Button
           onClick={onGenerate}
           size="lg"
-          className="h-11 w-full rounded-xl bg-primary px-5 font-semibold text-[#061414] shadow-[0_0_24px_-10px_rgba(45,212,191,.7)] transition hover:-translate-y-0.5 hover:bg-[#7af2dd] sm:w-auto"
+          className="generate-button-glow h-11 w-full rounded-xl bg-primary px-5 font-semibold text-[#061414] shadow-[0_0_24px_-10px_rgba(45,212,191,.7)] transition hover:-translate-y-0.5 hover:bg-[#7af2dd] sm:w-auto"
         >
           <Sparkles data-icon="inline-start" />
           Generate Question
@@ -268,11 +502,17 @@ function QuestionCard({
   level: LevelId
   questionNumber: number
 }) {
+  const [showTranslation, setShowTranslation] = useState(false)
   const levelLabel = level === "senior" ? "Senior Level" : "Staff Level"
+
   return (
-    <Card className="question-card relative min-h-[252px] overflow-hidden rounded-2xl border-white/[0.08] bg-[#101316] text-white shadow-[0_20px_90px_-48px_rgba(45,212,191,.22)] sm:min-h-[270px]">
+    <Card className="question-card relative min-h-[252px] overflow-hidden rounded-2xl border-teal-400/20 bg-[#101316] text-white shadow-[0_0_28px_rgba(94,234,212,0.06),0_20px_90px_-48px_rgba(45,212,191,.25)] sm:min-h-[270px]">
+      <div
+        className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-[radial-gradient(circle,rgba(94,234,212,0.14)_0%,rgba(45,212,191,0.04)_45%,transparent_72%)] blur-xl"
+        aria-hidden="true"
+      />
       <div className="question-orbit" aria-hidden="true" />
-      <CardContent className="relative flex h-full min-h-[252px] flex-col justify-between p-5 sm:min-h-[270px] sm:p-8">
+      <CardContent className="relative z-10 flex h-full min-h-[252px] flex-col justify-between p-5 sm:min-h-[270px] sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
             <span className="inline-flex size-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-primary">
@@ -280,23 +520,50 @@ function QuestionCard({
             </span>
             Interview question
           </div>
-          <Badge
-            variant="outline"
-            className="border-primary/20 bg-primary/[0.07] px-2.5 py-1 text-[11px] font-medium text-primary"
-          >
-            {question.category}
-            <span className="mx-1.5 text-primary/40">•</span>
-            {levelLabel}
-          </Badge>
+
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <Badge
+              variant="outline"
+              className="border-primary/20 bg-primary/[0.07] px-2.5 py-1 text-[11px] font-medium text-primary"
+            >
+              {question.category}
+              <span className="mx-1.5 text-primary/40">•</span>
+              {levelLabel}
+            </Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={showTranslation}
+              aria-controls="question-translation-panel"
+              onClick={() => setShowTranslation((prev) => !prev)}
+              className="h-7 rounded-lg px-2.5 text-[11px] text-zinc-400 hover:bg-white/[0.04] hover:text-primary"
+            >
+              {showTranslation ? "Hide PT-BR" : "Translate to PT-BR"}
+            </Button>
+          </div>
         </div>
 
-        <div className="relative z-10 max-w-[900px] py-8 sm:py-9">
+        <div className="relative z-10 max-w-[900px] py-7 sm:py-8">
           <p className="mb-3 font-mono text-[11px] tracking-[0.16em] text-primary/75">
             QUESTION {String(questionNumber).padStart(2, "0")}
           </p>
           <h1 className="text-[21px] leading-[1.42] font-medium tracking-[-0.035em] text-zinc-100 sm:text-[27px] sm:leading-[1.38] lg:text-[30px]">
-            {question.prompt}
+            <FormattedFeedbackText content={question.prompt} />
           </h1>
+
+          {showTranslation && (
+            <div
+              id="question-translation-panel"
+              lang="pt-BR"
+              className="mt-5 rounded-xl border border-white/[0.08] bg-[#0d0f12]/90 px-4 py-3 text-sm leading-6 text-zinc-300"
+            >
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-primary/75">
+                Tradução (PT-BR)
+              </span>
+              {question.translation}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-white/[0.07] pt-4">
@@ -310,66 +577,6 @@ function QuestionCard({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function RecordingButton({
-  isRecording,
-  onClick,
-}: {
-  isRecording: boolean
-  onClick: () => void
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-white/[0.07] bg-[#0d0f12] px-4 py-5 sm:min-h-[246px] sm:px-6">
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={isRecording ? "Stop recording" : "Start speech recognition"}
-        aria-pressed={isRecording}
-        className={`record-button relative flex size-[76px] items-center justify-center rounded-full border transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d0f12] sm:size-[86px] ${
-          isRecording
-            ? "is-recording border-rose-400/50 bg-rose-500/10 text-rose-300"
-            : "border-primary/25 bg-primary/[0.09] text-primary hover:scale-[1.04] hover:border-primary/50 hover:bg-primary/[0.15]"
-        }`}
-      >
-        {isRecording ? (
-          <MicOff className="relative z-10 size-6" />
-        ) : (
-          <Mic className="relative z-10 size-6" />
-        )}
-        {isRecording && <span className="recording-ripple" aria-hidden="true" />}
-      </button>
-      <div className="text-center">
-        <p className="text-sm font-semibold text-zinc-200">
-          {isRecording ? "Listening..." : "Click to Speak"}
-        </p>
-        <p className="mt-1 text-[11px] text-zinc-500">Web Speech API</p>
-      </div>
-      <div
-        className={`flex h-5 items-center gap-[3px] ${
-          isRecording ? "" : "opacity-35"
-        }`}
-        aria-hidden="true"
-      >
-        {[10, 18, 13, 22, 14, 19, 9, 16, 11, 20, 12, 17, 8].map(
-          (height, index) => (
-            <span
-              key={index}
-              className={`visualizer-bar ${
-                isRecording ? "visualizer-bar-active" : ""
-              }`}
-              style={
-                {
-                  "--bar-height": `${height}px`,
-                  "--bar-delay": `${index * 65}ms`,
-                } as CSSProperties
-              }
-            />
-          )
-        )}
-      </div>
-    </div>
   )
 }
 
@@ -400,62 +607,141 @@ function ResponseSection({
   const isAtLimit = charCount >= charLimit
   const isNearLimit = charCount >= charLimit * 0.8 && !isAtLimit
 
+  const waveBars = [
+    4, 8, 12, 18, 11, 20, 14, 9, 19, 12, 22, 15, 10, 18, 12, 20, 14, 8, 16, 11, 4,
+  ]
+
   return (
     <section aria-labelledby="response-heading">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2 px-0.5">
-        <div>
-          <p className="section-kicker">YOUR TURN</p>
-          <h2
-            id="response-heading"
-            className="mt-1 text-lg font-semibold tracking-tight text-zinc-100"
-          >
-            Your response
-          </h2>
-        </div>
-        <span className="text-xs text-zinc-500">
-          Aim for a clear, structured answer
-        </span>
-      </div>
-      <Card className="overflow-hidden rounded-2xl border-white/[0.08] bg-[#101316] text-white">
-        <CardContent className="grid gap-4 p-4 sm:grid-cols-[210px_minmax(0,1fr)] sm:p-5 lg:grid-cols-[225px_minmax(0,1fr)]">
-          <RecordingButton isRecording={isRecording} onClick={onToggleRecording} />
-          <div className="flex min-w-0 flex-col">
+      <StepHeading
+        number="02"
+        title="Your response"
+        detail="Speak or type a clear, structured answer"
+        status="active"
+      />
+      <Card
+        className={cn(
+          "overflow-hidden rounded-2xl border bg-[#101316] text-white transition-colors",
+          isRecording ? "border-primary/35" : "border-white/[0.08]"
+        )}
+      >
+        <CardContent className="p-4 sm:p-5">
+          <div className="mb-2.5 flex items-center justify-between gap-3">
             <label
               htmlFor="answer-transcript"
-              className="mb-2.5 flex items-center justify-between gap-3 text-xs font-medium text-zinc-400"
+              className="text-xs font-medium text-zinc-300"
             >
-              <span>Or type/edit your response here...</span>
-              <span className="font-mono text-[10px] text-zinc-600">
-                ENGLISH
-              </span>
+              Your answer
             </label>
-            <Textarea
-              id="answer-transcript"
-              value={response}
-              onChange={(event) => onResponseChange(event.target.value)}
-              placeholder="Start with the constraints, then walk through your approach and trade-offs..."
-              className="min-h-[174px] flex-1 resize-y rounded-xl border-white/[0.08] bg-[#0c0e11] p-4 text-[13px] leading-6 text-zinc-200 placeholder:text-zinc-600 focus-visible:border-primary/40 focus-visible:ring-primary/20 sm:min-h-[188px]"
-              aria-describedby="response-help response-status"
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <span id="response-help" className="text-[11px] text-zinc-600">
+            <span className="font-mono text-[10px] tracking-[0.12em] text-zinc-600">
+              ENGLISH
+            </span>
+          </div>
+
+          <Textarea
+            id="answer-transcript"
+            value={response}
+            onChange={(event) => onResponseChange(event.target.value)}
+            placeholder="Your spoken transcript will appear here, or type your answer..."
+            className="min-h-[168px] resize-y rounded-xl border-white/[0.08] bg-[#0c0e11] p-4 text-[13px] leading-6 text-zinc-200 placeholder:text-zinc-600 focus-visible:border-primary/40 focus-visible:ring-primary/20 sm:min-h-[184px]"
+            aria-describedby="response-help response-status"
+          />
+
+          <div className="mt-3.5 flex flex-col gap-3 border-t border-white/[0.06] pt-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <span id="response-help" className="text-[11px] text-zinc-500">
                 {wordCount} {wordCount === 1 ? "word" : "words"}
               </span>
+
               {isNearLimit && (
                 <span className="text-[11px] text-amber-400">
-                  — {charCount}/{charLimit} chars
+                  {charCount}/{charLimit} chars
                 </span>
               )}
               {isAtLimit && (
                 <span className="text-[11px] text-red-500">
-                  — {charCount}/{charLimit} chars (limit reached)
+                  {charCount}/{charLimit} chars (limit reached)
                 </span>
               )}
+
+              {isRecording && (
+                <div
+                  className="flex items-center gap-2 text-[11px] text-primary"
+                  aria-hidden="true"
+                >
+                  <span className="font-medium">Listening</span>
+                  <div className="flex h-5 items-center gap-[3px]">
+                    {waveBars.map((height, index) => (
+                      <span
+                        key={index}
+                        className="visualizer-bar visualizer-bar-active bg-primary"
+                        style={
+                          {
+                            "--bar-height": `${height}px`,
+                            "--bar-delay": `${index * 60}ms`,
+                          } as CSSProperties
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
+                type="button"
+                variant="outline"
+                onClick={onToggleRecording}
+                disabled={status === "submitting"}
+                aria-label={
+                  isRecording ? "Finish voice input" : "Start voice input"
+                }
+                aria-pressed={isRecording}
+                className={cn(
+                  "h-10 rounded-xl border-white/10 px-3.5 text-xs font-medium transition",
+                  isRecording
+                    ? "border-rose-400/40 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
+                    : "bg-[#14171b] text-zinc-200 hover:border-primary/30 hover:text-primary"
+                )}
+              >
+                {isRecording ? (
+                  <>
+                    <MicOff className="size-4" data-icon="inline-start" />
+                    Finish
+                  </>
+                ) : (
+                  <>
+                    <Mic
+                      className="size-4 text-primary"
+                      data-icon="inline-start"
+                    />
+                    Voice
+                  </>
+                )}
+              </Button>
+
+              {(response.length > 0 ||
+                status === "feedback" ||
+                status === "error") && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={onClearAnswer}
+                  disabled={status === "submitting"}
+                  className="h-10 rounded-xl px-3.5 text-xs font-semibold"
+                >
+                  <Trash2 className="size-4" data-icon="inline-start" />
+                  Clear Answer
+                </Button>
+              )}
+
+              <Button
+                type="button"
                 onClick={onSubmit}
                 disabled={status !== "idle" || !response.trim() || isAtLimit}
                 size="lg"
-                className="h-10 w-full rounded-xl bg-primary px-4 font-semibold text-[#061414] hover:bg-[#7af2dd] sm:w-auto"
+                className="h-10 rounded-xl bg-primary px-4 text-xs font-semibold text-[#061414] hover:bg-[#7af2dd]"
               >
                 {submitted ? (
                   <Check data-icon="inline-start" />
@@ -465,30 +751,21 @@ function ResponseSection({
                 {submitted ? "Answer submitted" : "Submit Answer for Feedback"}
                 {!submitted && <ArrowRight data-icon="inline-end" />}
               </Button>
-              {(response.length > 0 || status === "feedback" || status === "error") && (
-                <Button
-                  onClick={onClearAnswer}
-                  disabled={status === "submitting"}
-                  size="lg"
-                  className="mt-2 h-10 w-full rounded-xl bg-destructive px-4 font-semibold text-white hover:bg-[var(--destructive)] sm:mt-0 sm:w-auto"
-                >
-                  <Trash2 data-icon="inline-start" />
-                  Clear Answer
-                </Button>
-              )}
             </div>
-            <p
-              id="response-status"
-              role="status"
-              aria-live="polite"
-              className={`mt-2 min-h-4 text-[11px] ${
-                speechMessage ? "text-primary/80" : "text-zinc-600"
-              }`}
-            >
-              {speechMessage ||
-                (submitted ? "Feedback below is ready to review." : "")}
-            </p>
           </div>
+
+          <p
+            id="response-status"
+            role="status"
+            aria-live="polite"
+            className={cn(
+              "mt-2 min-h-4 text-[11px]",
+              speechMessage ? "text-primary/85" : "text-zinc-600"
+            )}
+          >
+            {speechMessage ||
+              (submitted ? "Feedback below is ready to review." : "")}
+          </p>
         </CardContent>
       </Card>
     </section>
@@ -509,6 +786,10 @@ function ThinkingPanel({ message }: { message: string }) {
   )
 }
 
+/* ============================================================================
+   MAIN WORKSPACE (GUIDED FLOW: EMPTY STATE -> GENERATE -> RESPOND -> EVALUATE)
+   ============================================================================ */
+
 export function PracticeWorkspace() {
   const topic = usePracticeStore((state) => state.topic)
   const level = usePracticeStore((state) => state.level)
@@ -528,6 +809,7 @@ export function PracticeWorkspace() {
   const setSpeechMessage = usePracticeStore((state) => state.setSpeechMessage)
   const submitFeedback = usePracticeStore((state) => state.submitFeedback)
 
+  const [hasGeneratedQuestion, setHasGeneratedQuestion] = useState(false)
   const [highlightedPanel, setHighlightedPanel] = useState<
     "question" | "feedback" | null
   >(null)
@@ -541,7 +823,9 @@ export function PracticeWorkspace() {
   const questionPanelRef = useRef<HTMLDivElement | null>(null)
   const feedbackPanelRef = useRef<HTMLElement | null>(null)
 
-  const currentQuestion = questions[topic][questionIndex % questions[topic].length]
+  const currentQuestion = hasGeneratedQuestion
+    ? questions[topic][questionIndex % questions[topic].length]
+    : null
 
   useEffect(() => {
     return () => {
@@ -602,6 +886,7 @@ export function PracticeWorkspace() {
   function handleGenerateQuestion() {
     if (isSubmitting) return
     stopRecognition()
+    setHasGeneratedQuestion(true)
     generateNextQuestion()
     requestAnimationFrame(() => {
       focusAndHighlight("question")
@@ -609,7 +894,9 @@ export function PracticeWorkspace() {
   }
 
   function handleToggleRecording() {
-    if (isRecording || isSubmitting) {
+    if (!hasGeneratedQuestion || isSubmitting) return
+
+    if (isRecording) {
       recognitionRef.current?.stop()
       setStatus("idle")
       return
@@ -677,6 +964,7 @@ export function PracticeWorkspace() {
   }
 
   async function handleSubmit() {
+    if (!hasGeneratedQuestion) return
     recognitionRef.current?.stop()
     requestAnimationFrame(() => {
       scrollToPanel(feedbackPanelRef.current)
@@ -704,15 +992,15 @@ export function PracticeWorkspace() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/80">
               <span className="size-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(45,212,191,.75)]" />
-              Practice session
+              Interview practice 
             </div>
             <h2 className="text-[25px] leading-tight font-semibold tracking-[-0.045em] text-zinc-100 sm:text-[30px]">
-              Make your next answer your best one.
+              Practice with intention.
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
+            {/* <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
               Sharpen your technical thinking and communication, one thoughtful
               answer at a time.
-            </p>
+            </p> */}
           </div>
           <div className="hidden items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[11px] text-zinc-500 md:flex">
             <span className="size-1.5 rounded-full bg-emerald-400" />
@@ -728,6 +1016,7 @@ export function PracticeWorkspace() {
           onGenerate={handleGenerateQuestion}
         />
 
+        {/* STEP 01: QUESTION */}
         <div
           ref={questionPanelRef}
           role="region"
@@ -739,28 +1028,62 @@ export function PracticeWorkspace() {
               "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
-          <QuestionCard
-            question={currentQuestion}
-            level={level}
-            questionNumber={questionIndex + 1}
+          <StepHeading
+            number="01"
+            title="Question"
+            detail={
+              currentQuestion
+                ? "Read carefully and structure your response"
+                : "Choose a topic and level to begin"
+            }
+            status={currentQuestion ? "complete" : "active"}
           />
+
+          {currentQuestion ? (
+            <QuestionCard
+              key={`${topic}-${questionIndex}`}
+              question={currentQuestion}
+              level={level}
+              questionNumber={questionIndex + 1}
+            />
+          ) : (
+            <EmptyStateCard
+              variant="question"
+              title="Ready to practice?"
+              description="Select topic & level above, then generate your question."
+            />
+          )}
         </div>
 
-        <ResponseSection
-          response={response}
-          onResponseChange={(value) => {
-            setAnswer(value)
-            setSpeechMessage("")
-          }}
-          isRecording={isRecording}
-          onToggleRecording={handleToggleRecording}
-          speechMessage={speechMessage}
-          onSubmit={handleSubmit}
-          submitted={submitted}
-          status={status}
-          onClearAnswer={handleClearAnswer}
-        />
+        {/* STEP 02: RESPONSE */}
+        {currentQuestion ? (
+          <ResponseSection
+            response={response}
+            onResponseChange={(value) => {
+              setAnswer(value)
+              setSpeechMessage("")
+            }}
+            isRecording={isRecording}
+            onToggleRecording={handleToggleRecording}
+            speechMessage={speechMessage}
+            onSubmit={handleSubmit}
+            submitted={submitted}
+            status={status}
+            onClearAnswer={handleClearAnswer}
+          />
+        ) : (
+          <section aria-labelledby="standby-response-heading">
+            <StepHeading number="02" title="Your response" status="standby" />
+            <EmptyStateCard
+              variant="response"
+              title="Workspace on standby"
+              description="Generate a question above to activate audio & text input."
+              compact
+            />
+          </section>
+        )}
 
+        {/* STEP 03: FEEDBACK & MODEL ANSWER */}
         <section
           ref={feedbackPanelRef}
           id="feedback-panel"
@@ -773,40 +1096,60 @@ export function PracticeWorkspace() {
           )}
         >
           <div className="border-t border-white/[0.07] pt-7 sm:pt-8">
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
-              <div>
-                <p className="section-kicker">THE DEBRIEF</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                  <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-                    AI feedback
-                  </h2>
-                  <Badge
-                    variant="outline"
-                    className="border-white/10 bg-white/[0.035] text-[10px] font-medium text-zinc-500"
-                  >
-                    {submitted ? "LIVE REVIEW" : "SAMPLE REVIEW"}
-                  </Badge>
-                </div>
-              </div>
-              <span className="max-w-[340px] text-xs leading-5 text-zinc-500">
-                {submitted
-                  ? "Feedback generated for your submitted answer."
-                  : "Example feedback for this question. Submit a response to see your evaluation."}
-              </span>
-            </div>
+            <StepHeading
+              number="03"
+              title="Feedback & model answer"
+              detail={
+                submitted
+                  ? "Review your breakdown step by step"
+                  : "Available after submitting your answer"
+              }
+              status={submitted ? "complete" : "standby"}
+            />
 
-            {isSubmitting ? (
-              <ThinkingPanel message="Evaluating your response..." />
-            ) : (
-              <PracticeFeedback
-                key={
-                  feedback
-                    ? JSON.stringify(feedback.seniorModelAnswer.answer)
-                    : "empty"
-                }
-                submitted={submitted}
-                feedback={feedback}
+            {!submitted && !isSubmitting ? (
+              <EmptyStateCard
+                variant="feedback"
+                title="Awaiting response"
+                description="Score, feedback, and Senior Model Answer will appear after submission."
+                compact
               />
+            ) : (
+              <>
+                <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
+                  <div>
+                    <p className="section-kicker">THE DEBRIEF</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+                      <h3 className="text-lg font-semibold tracking-tight text-zinc-100">
+                        AI feedback
+                      </h3>
+                      <Badge
+                        variant="outline"
+                        className="border-white/10 bg-white/[0.035] text-[10px] font-medium text-zinc-500"
+                      >
+                        LIVE REVIEW
+                      </Badge>
+                    </div>
+                  </div>
+                  <span className="max-w-[340px] text-xs leading-5 text-zinc-500">
+                    Feedback generated for your submitted answer.
+                  </span>
+                </div>
+
+                {isSubmitting ? (
+                  <ThinkingPanel message="Evaluating your response..." />
+                ) : (
+                  <PracticeFeedback
+                    key={
+                      feedback
+                        ? JSON.stringify(feedback.seniorModelAnswer.answer)
+                        : "empty"
+                    }
+                    submitted={submitted}
+                    feedback={feedback}
+                  />
+                )}
+              </>
             )}
           </div>
         </section>
