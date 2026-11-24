@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { CSSProperties } from "react"
 import {
   ArrowRight,
@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { PracticeFeedback } from "@/components/practice-feedback"
+import { ThinkingFace } from "@/components/thinking-face"
+import { cn } from "@/lib/utils"
 import {
   usePracticeStore,
   type LevelId,
@@ -48,10 +50,10 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   onresult:
-  | ((event: {
-    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-  }) => void)
-  | null
+    | ((event: {
+        results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+      }) => void)
+    | null
   onerror: (() => void) | null
   onend: (() => void) | null
 }
@@ -144,12 +146,12 @@ function AppHeader() {
           className="border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-medium tracking-[0.08em] text-zinc-400"
         >
           <span className="mr-1.5 inline-block size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
-          V1 PRACTICE MVP
+          V1 PRACTICE
         </Badge>
         <span className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden="true" />
         <Avatar className="size-9 border border-white/10 bg-[#1a2224] text-xs text-primary">
           <AvatarFallback className="bg-[#1a2224] font-semibold text-primary">
-            JD
+            HQ
           </AvatarFallback>
         </Avatar>
       </div>
@@ -325,10 +327,11 @@ function RecordingButton({
         onClick={onClick}
         aria-label={isRecording ? "Stop recording" : "Start speech recognition"}
         aria-pressed={isRecording}
-        className={`record-button relative flex size-[76px] items-center justify-center rounded-full border transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d0f12] sm:size-[86px] ${isRecording
+        className={`record-button relative flex size-[76px] items-center justify-center rounded-full border transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0d0f12] sm:size-[86px] ${
+          isRecording
             ? "is-recording border-rose-400/50 bg-rose-500/10 text-rose-300"
             : "border-primary/25 bg-primary/[0.09] text-primary hover:scale-[1.04] hover:border-primary/50 hover:bg-primary/[0.15]"
-          }`}
+        }`}
       >
         {isRecording ? (
           <MicOff className="relative z-10 size-6" />
@@ -344,16 +347,18 @@ function RecordingButton({
         <p className="mt-1 text-[11px] text-zinc-500">Web Speech API</p>
       </div>
       <div
-        className={`flex h-5 items-center gap-[3px] ${isRecording ? "" : "opacity-35"
-          }`}
+        className={`flex h-5 items-center gap-[3px] ${
+          isRecording ? "" : "opacity-35"
+        }`}
         aria-hidden="true"
       >
         {[10, 18, 13, 22, 14, 19, 9, 16, 11, 20, 12, 17, 8].map(
           (height, index) => (
             <span
               key={index}
-              className={`visualizer-bar ${isRecording ? "visualizer-bar-active" : ""
-                }`}
+              className={`visualizer-bar ${
+                isRecording ? "visualizer-bar-active" : ""
+              }`}
               style={
                 {
                   "--bar-height": `${height}px`,
@@ -465,7 +470,7 @@ function ResponseSection({
                   onClick={onClearAnswer}
                   disabled={status === "submitting"}
                   size="lg"
-                  className="h-10 w-full rounded-xl bg-destructive px-4 font-semibold text-white hover:bg-[var(--destructive)] sm:w-auto mt-2"
+                  className="mt-2 h-10 w-full rounded-xl bg-destructive px-4 font-semibold text-white hover:bg-[var(--destructive)] sm:mt-0 sm:w-auto"
                 >
                   <Trash2 data-icon="inline-start" />
                   Clear Answer
@@ -476,16 +481,31 @@ function ResponseSection({
               id="response-status"
               role="status"
               aria-live="polite"
-              className={`mt-2 min-h-4 text-[11px] ${speechMessage ? "text-primary/80" : "text-zinc-600"
-                }`}
+              className={`mt-2 min-h-4 text-[11px] ${
+                speechMessage ? "text-primary/80" : "text-zinc-600"
+              }`}
             >
               {speechMessage ||
-                (submitted ? "Sample feedback below is ready to review." : "")}
+                (submitted ? "Feedback below is ready to review." : "")}
             </p>
           </div>
         </CardContent>
       </Card>
     </section>
+  )
+}
+
+function ThinkingPanel({ message }: { message: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex min-h-[252px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/[0.08] bg-[#101316] px-5 text-center sm:min-h-[270px]"
+    >
+      <ThinkingFace className="size-16" />
+      <p className="text-sm font-medium text-zinc-300">{message}</p>
+      <span className="text-[11px] text-zinc-600">Please wait a moment</span>
+    </div>
   )
 }
 
@@ -508,13 +528,60 @@ export function PracticeWorkspace() {
   const setSpeechMessage = usePracticeStore((state) => state.setSpeechMessage)
   const submitFeedback = usePracticeStore((state) => state.submitFeedback)
 
+  const [highlightedPanel, setHighlightedPanel] = useState<
+    "question" | "feedback" | null
+  >(null)
+
   const isRecording = status === "recording"
+  const isSubmitting = status === "submitting"
   const submitted = status === "feedback" && feedback !== null
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const highlightTimerRef = useRef<number | null>(null)
+  const questionPanelRef = useRef<HTMLDivElement | null>(null)
+  const feedbackPanelRef = useRef<HTMLElement | null>(null)
+
   const currentQuestion = questions[topic][questionIndex % questions[topic].length]
 
-  useEffect(() => () => recognitionRef.current?.stop(), [])
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop()
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current)
+      }
+    }
+  }, [])
+
+  function scrollToPanel(panel: HTMLElement | null) {
+    if (!panel) return
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+    panel.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "center",
+    })
+  }
+
+  function focusAndHighlight(panelName: "question" | "feedback") {
+    const panel =
+      panelName === "question"
+        ? questionPanelRef.current
+        : feedbackPanelRef.current
+    if (!panel) return
+
+    scrollToPanel(panel)
+    panel.focus({ preventScroll: true })
+    setHighlightedPanel(panelName)
+
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current)
+    }
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedPanel((current) => (current === panelName ? null : current))
+      highlightTimerRef.current = null
+    }, 1500)
+  }
 
   function stopRecognition() {
     recognitionRef.current?.stop()
@@ -533,13 +600,16 @@ export function PracticeWorkspace() {
   }
 
   function handleGenerateQuestion() {
-    if (status === "submitting") return
+    if (isSubmitting) return
     stopRecognition()
     generateNextQuestion()
+    requestAnimationFrame(() => {
+      focusAndHighlight("question")
+    })
   }
 
   function handleToggleRecording() {
-    if (isRecording || status === "submitting") {
+    if (isRecording || isSubmitting) {
       recognitionRef.current?.stop()
       setStatus("idle")
       return
@@ -608,7 +678,13 @@ export function PracticeWorkspace() {
 
   async function handleSubmit() {
     recognitionRef.current?.stop()
+    requestAnimationFrame(() => {
+      scrollToPanel(feedbackPanelRef.current)
+    })
     await submitFeedback()
+    requestAnimationFrame(() => {
+      focusAndHighlight("feedback")
+    })
   }
 
   function handleClearAnswer() {
@@ -652,11 +728,23 @@ export function PracticeWorkspace() {
           onGenerate={handleGenerateQuestion}
         />
 
-        <QuestionCard
-          question={currentQuestion}
-          level={level}
-          questionNumber={questionIndex + 1}
-        />
+        <div
+          ref={questionPanelRef}
+          role="region"
+          aria-label="Interview question"
+          tabIndex={-1}
+          className={cn(
+            "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
+            highlightedPanel === "question" &&
+              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+          )}
+        >
+          <QuestionCard
+            question={currentQuestion}
+            level={level}
+            questionNumber={questionIndex + 1}
+          />
+        </div>
 
         <ResponseSection
           response={response}
@@ -673,33 +761,55 @@ export function PracticeWorkspace() {
           onClearAnswer={handleClearAnswer}
         />
 
-        <div className="border-t border-white/[0.07] pt-7 sm:pt-8">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
-            <div>
-              <p className="section-kicker">THE DEBRIEF</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-                  AI feedback
-                </h2>
-                <Badge
-                  variant="outline"
-                  className="border-white/10 bg-white/[0.035] text-[10px] font-medium text-zinc-500"
-                >
-                  SAMPLE REVIEW
-                </Badge>
+        <section
+          ref={feedbackPanelRef}
+          id="feedback-panel"
+          aria-label="AI feedback"
+          tabIndex={-1}
+          className={cn(
+            "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
+            highlightedPanel === "feedback" &&
+              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+          )}
+        >
+          <div className="border-t border-white/[0.07] pt-7 sm:pt-8">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
+              <div>
+                <p className="section-kicker">THE DEBRIEF</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+                    AI feedback
+                  </h2>
+                  <Badge
+                    variant="outline"
+                    className="border-white/10 bg-white/[0.035] text-[10px] font-medium text-zinc-500"
+                  >
+                    {submitted ? "LIVE REVIEW" : "SAMPLE REVIEW"}
+                  </Badge>
+                </div>
               </div>
+              <span className="max-w-[340px] text-xs leading-5 text-zinc-500">
+                {submitted
+                  ? "Feedback generated for your submitted answer."
+                  : "Example feedback for this question. Submit a response to see your evaluation."}
+              </span>
             </div>
-            <span className="max-w-[340px] text-xs leading-5 text-zinc-500">
-              Example feedback for this question. Submit a response to see the
-              demo state.
-            </span>
+
+            {isSubmitting ? (
+              <ThinkingPanel message="Evaluating your response..." />
+            ) : (
+              <PracticeFeedback
+                key={
+                  feedback
+                    ? JSON.stringify(feedback.seniorModelAnswer.answer)
+                    : "empty"
+                }
+                submitted={submitted}
+                feedback={feedback}
+              />
+            )}
           </div>
-          <PracticeFeedback
-            key={feedback ? JSON.stringify(feedback.seniorModelAnswer.answer) : "empty"}
-            submitted={submitted}
-            feedback={feedback}
-          />
-        </div>
+        </section>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4 text-[11px] text-zinc-600">
           <span className="flex items-center gap-1.5">

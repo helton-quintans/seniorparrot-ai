@@ -273,6 +273,37 @@
   }
 }
 
+.thinking-face-outline {
+  opacity: 0.42;
+}
+
+.thinking-face-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: thinking-face-blink 4.8s ease-in-out infinite;
+}
+
+.thinking-face-eye-right {
+  animation-delay: 80ms;
+}
+
+.thinking-face-mouth {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: thinking-face-mouth 1.8s ease-in-out infinite;
+}
+
+@keyframes thinking-face-blink {
+  0%, 44%, 50%, 100% { transform: scaleY(1); }
+  46% { transform: scaleY(0.08); }
+}
+
+@keyframes thinking-face-mouth {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  50% { transform: translateY(1px) scaleX(0.88); }
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
