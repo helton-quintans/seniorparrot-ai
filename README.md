@@ -2,6 +2,10 @@
 
 An interactive workspace for practicing technical engineering interviews in English (**Senior** and **Staff** levels), focused on structured reasoning, trade-offs, communication clarity, and step-by-step review.
 
+<p align="center">
+  <img src="./docs/assets/readme-hero.png" alt="Three-stage visual flow: system architecture question, voice and text response capture, and feedback metrics" width="360" />
+</p>
+
 ## Session Flow
 
 The interface guides each practice session through three stages with empty states, a dark theme, and subtle mint accents:
@@ -13,14 +17,6 @@ The interface guides each practice session through three stages with empty state
    - Supports typing or voice input via the **Web Speech API**, complete with live recording feedback/waveform bars, word count, character limit indicators, and a clear-answer action.
 3. **03 · Feedback & model answer (Step-by-step debrief)**
    - Breaks down evaluation into `Technical Content`, `English & Delivery`, and `Senior Model Answer`, with scoring, actionable notes, rich text formatting via `FormattedFeedbackText`, and step navigation.
-
-## Visual Flow Concept
-
-![Three-stage visual flow: system architecture question, voice and text response capture, and feedback metrics](./docs/assets/readme-hero.png)
-
-- **Stage 01 (Question / Architecture):** Represents scoping the problem, constraints, and system architecture.
-- **Stage 02 (Response / Voice & Text):** Represents articulating the answer through speech and written notes.
-- **Stage 03 (Feedback & Growth):** Represents evaluation, trade-off reflection, and a senior model answer.
 
 ## Project Structure
 
