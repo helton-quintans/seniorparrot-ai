@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SeniorParrot AI — Practice Workspace
+
+An interactive workspace for practicing technical engineering interviews in English (**Senior** and **Staff** levels), focused on structured reasoning, trade-offs, communication clarity, and step-by-step review.
+
+## Session Flow
+
+The interface guides each practice session through three stages with empty states, a dark theme, and subtle mint accents:
+
+1. **01 · Question (`Frontend Architecture`, `React Internals`, `System Design`, `Behavioral (STAR)`)**
+   - Generates interview prompts tailored to the selected topic and seniority level.
+   - Includes a collapsible `PT-BR` translation toggle while keeping the English prompt front and center.
+2. **02 · Your response (Unified voice & text composer)**
+   - Supports typing or voice input via the **Web Speech API**, complete with live recording feedback/waveform bars, word count, character limit indicators, and a clear-answer action.
+3. **03 · Feedback & model answer (Step-by-step debrief)**
+   - Breaks down evaluation into `Technical Content`, `English & Delivery`, and `Senior Model Answer`, with scoring, actionable notes, rich text formatting via `FormattedFeedbackText`, and step navigation.
+
+## Visual Flow Concept
+
+![Three-stage visual flow: system architecture question, voice and text response capture, and feedback metrics](./docs/assets/readme-hero.png)
+
+- **Stage 01 (Question / Architecture):** Represents scoping the problem, constraints, and system architecture.
+- **Stage 02 (Response / Voice & Text):** Represents articulating the answer through speech and written notes.
+- **Stage 03 (Feedback & Growth):** Represents evaluation, trade-off reflection, and a senior model answer.
+
+## Project Structure
+
+- `src/components/practice-workspace.tsx`: Coordinates the practice session, topic/level controls, question card, response composer, `usePracticeStore` state, and Web Speech API integration.
+- `src/components/practice-feedback.tsx`: Renders the *At a glance* summary, step navigation (`01`–`03`), progress bar, and the technical, delivery, and model answer cards.
+- `src/components/formatted-feedback-text.tsx`: Formats technical text and highlighted snippets.
+- `src/stores/practice-store.ts`: Manages session state (`topic`, `level`, `questionIndex`, `answer`, `status`, `speechMessage`, `feedback`).
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

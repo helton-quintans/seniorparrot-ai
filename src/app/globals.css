@@ -184,26 +184,25 @@
   inset: 52px;
 }
 
-.recording-ripple {
-  position: absolute;
-  inset: -8px;
-  border: 1px solid rgb(251 113 133 / 45%);
-  border-radius: 50%;
-  animation: recording-pulse 1.65s ease-out infinite;
-}
-
 .visualizer-bar {
   width: 3px;
-  height: 4px;
+  height: 3px;
+  flex: none;
   border-radius: 999px;
   background: #5eead4;
+  transform-origin: center;
 }
 
 .visualizer-bar-active {
   height: var(--bar-height);
-  animation: voice-wave 680ms ease-in-out infinite alternate;
+  animation: voice-wave var(--bar-duration, 680ms) ease-in-out infinite alternate;
   animation-delay: var(--bar-delay);
-  box-shadow: 0 0 9px rgb(94 234 212 / 35%);
+  box-shadow: 0 0 7px rgb(94 234 212 / 25%);
+}
+
+.visualizer-bar-speaking {
+  background: #99f6e4;
+  box-shadow: 0 0 10px rgb(94 234 212 / 55%);
 }
 
 .score-ring {
@@ -251,21 +250,10 @@
   border-radius: 10px;
 }
 
-@keyframes recording-pulse {
-  0% {
-    opacity: 0.72;
-    transform: scale(0.92);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.28);
-  }
-}
-
 @keyframes voice-wave {
-  from {
-    transform: scaleY(0.48);
-    opacity: 0.55;
+  from { 
+    transform: scaleY(0.42); 
+    opacity: 0.5; 
   }
   to {
     transform: scaleY(1);
