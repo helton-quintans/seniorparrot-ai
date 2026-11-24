@@ -303,7 +303,7 @@ function ResponseEmptyState() {
       {/* Minimal Status Capsule */}
       <div className="relative z-10 flex items-center gap-2 rounded-full border border-white/10 bg-[#161a20] px-3.5 py-1 text-[11px] font-mono text-zinc-400">
         <span className="size-2 rounded-full bg-primary-400/80 animate-ping" />
-        <span className="text-zinc-300">USE YOU VOICE OR TYPE</span>
+        <span className="text-zinc-300">USE YOUR VOICE OR TYPE</span>
       </div>
     </div>
   )
