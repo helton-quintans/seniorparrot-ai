@@ -54,10 +54,10 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   onresult:
-    | ((event: {
-        results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-      }) => void)
-    | null
+  | ((event: {
+    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+  }) => void)
+  | null
   onerror: (() => void) | null
   onend: (() => void) | null
 }
@@ -139,7 +139,7 @@ const questions: Record<TopicId, Question[]> = {
 }
 
 /* ============================================================================
-   HEADER, STEP HEADINGS & EMPTY STATES (READY FOR LOCAL SVG ASSETS)
+   HEADER, STEP HEADINGS & EMPTY STATES
    ============================================================================ */
 
 function BrandMark() {
@@ -238,153 +238,121 @@ function StepHeading({
   )
 }
 
-// Swap these placeholders with your local SVGs from /public/illustrations/
-function QuestionEmptyArtwork() {
+function QuestionEmptyState() {
   return (
-    <svg
-      className="empty-state-art h-full w-full text-zinc-500"
-      viewBox="0 0 180 112"
-      role="img"
-      aria-label="Developer preparing with a laptop"
-      fill="none"
-    >
-      <path
-        d="M29 89h123M54 88l-4 9m76-9 4 9m-81 0h85"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
+    <div className="group relative flex min-h-[280px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0e11] p-8 text-center transition-all duration-500 hover:border-primary/30">
+      {/* Background Subtle Grid & Ambient Glow */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(#5eead4_1px,transparent_1px)] opacity-[0.12] [background-size:20px_20px]"
+        aria-hidden="true"
       />
-      <path
-        d="M67 38c0-10 7-17 17-17s17 7 17 17v17H67V38Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
+      <div
+        className="pointer-events-none absolute size-64 rounded-full bg-primary/10 blur-3xl transition-all duration-700 group-hover:bg-primary/20"
+        aria-hidden="true"
       />
-      <path
-        d="M71 36c5 2 13 1 18-3 2 5 6 7 12 7M77 43h1m12 0h1m-11 6c2 2 5 2 7 0"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M62 78c1-12 7-19 17-21l5 6 7-6c10 2 16 9 17 21"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M35 64h27v18H35z" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  )
-}
 
-function ResponseEmptyArtwork() {
-  return (
-    <svg
-      className="empty-state-art h-full w-full text-zinc-500"
-      viewBox="0 0 180 112"
-      role="img"
-      aria-label="Workspace ready in standby"
-      fill="none"
-    >
-      <path
-        d="M31 91h118M51 90l-5 8m78-8 5 8m-78 0h82"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M78 32c0-9 6-15 15-15s15 6 15 15v10H78V32Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M71 79c1-15 8-22 22-23 13 1 20 8 21 23l-8 8H78l-7-8Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M120 43h19v26h-19zM124 50h11m-11 5h8m-8 5h10"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
+      {/* Interactive Visual Core */}
+      <div className="relative flex items-center justify-center">
+        {/* Outer Pulsing Rings */}
+        <div className="absolute size-44 rounded-full border border-primary/20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] opacity-40" />
+        <div className="absolute size-36 rounded-full border border-dashed border-primary/30 animate-[spin_30s_linear_infinite]" />
 
-function FeedbackEmptyArtwork() {
-  return (
-    <svg
-      className="empty-state-art h-full w-full text-zinc-500"
-      viewBox="0 0 180 112"
-      role="img"
-      aria-label="Growth chart waiting for submission"
-      fill="none"
-    >
-      <path
-        d="M35 89h111M47 88V69h17v19m10 0V55h17v33m10 0V42h17v46m10 0V30h17v58"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m46 60 22-11 18 3 18-18 17 2 19-17"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m133 19 8-1-2 8"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function EmptyStateCard({
-  variant,
-  title,
-  description,
-  compact = false,
-}: {
-  variant: "question" | "response" | "feedback"
-  title: string
-  description: string
-  compact?: boolean
-}) {
-  const Artwork =
-    variant === "question"
-      ? QuestionEmptyArtwork
-      : variant === "response"
-        ? ResponseEmptyArtwork
-        : FeedbackEmptyArtwork
-
-  return (
-    <div
-      className={cn(
-        "empty-state flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-[#101316] text-center",
-        compact
-          ? "min-h-[184px] px-5 py-6"
-          : "min-h-[252px] px-5 py-8 sm:min-h-[270px]"
-      )}
-    >
-      <div className="empty-state-art-frame flex size-32 shrink-0 items-center justify-center sm:size-36">
-        <Artwork />
+        {/* Central Hex/Core Icon */}
+        <div className="relative flex size-16 items-center justify-center rounded-2xl border border-primary/50 bg-[#101418] shadow-[0_0_30px_rgba(94,234,212,0.25)] transition-transform duration-300 group-hover:scale-105">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent" />
+          <span className="font-mono text-2xl font-black tracking-tighter text-primary">
+            &lt;/&gt;
+          </span>
+        </div>
       </div>
-      <h3 className="mt-2 text-sm font-medium tracking-[-0.01em] text-zinc-200">
-        {title}
-      </h3>
-      <p className="mt-1.5 max-w-[360px] text-xs leading-5 text-zinc-500">
-        {description}
-      </p>
+
+      {/* Minimal Tech Tagline */}
+      <div className="relative z-10 mt-8 flex items-center gap-2">
+        <span className="size-1.5 rounded-full bg-primary" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-400">
+          SELECT TOPIC TO START SESSION
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function ResponseEmptyState() {
+  return (
+    <div className="group relative flex min-h-[220px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0e11] p-6 text-center transition-all duration-500 hover:border-primary/30">
+      {/* Glow Effect */}
+      <div
+        className="pointer-events-none absolute -bottom-10 size-48 rounded-full bg-primary/[0.07] blur-2xl transition-all duration-500 group-hover:bg-primary/[0.15]"
+        aria-hidden="true"
+      />
+
+      {/* High-Tech Equalizer Spectrum Visual */}
+      <div className="relative mb-4 flex items-end gap-1.5 h-12 px-6 py-2 rounded-2xl border border-white/[0.08] bg-[#12151a]/80 shadow-inner">
+        {[40, 70, 25, 90, 55, 30, 80, 100, 65, 45, 85, 35, 95, 50, 75, 20, 60].map((h, i) => (
+          <span
+            key={i}
+            className="w-1 rounded-full bg-gradient-to-t from-primary/30 to-primary transition-all"
+            style={{
+              height: `${h}%`,
+              animation: `pulse 1.5s ease-in-out infinite ${i * 90}ms`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Minimal Status Capsule */}
+      <div className="relative z-10 flex items-center gap-2 rounded-full border border-white/10 bg-[#161a20] px-3.5 py-1 text-[11px] font-mono text-zinc-400">
+        <span className="size-2 rounded-full bg-primary-400/80 animate-ping" />
+        <span className="text-zinc-300">USE YOUR VOICE OR TYPE</span>
+      </div>
+    </div>
+  )
+}
+
+function FeedbackEmptyState() {
+  return (
+    <div className="group relative flex min-h-[230px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0e11] p-6 text-center transition-all duration-500 hover:border-violet-500/30">
+      {/* Radar HUD Visual */}
+      <div className="relative mb-5 flex items-center justify-center gap-8">
+        {/* Metric Node 1 */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative flex size-12 items-center justify-center rounded-full border border-primary/40 bg-primary/5">
+            <div className="absolute inset-1 rounded-full border border-dashed border-primary/30 animate-[spin_10s_linear_infinite]" />
+            <span className="font-mono text-xs font-bold text-primary">00</span>
+          </div>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">TECH_DEPTH</span>
+        </div>
+
+        {/* Neural Line */}
+        <div className="h-px w-8 bg-gradient-to-r from-primary/40 via-white/20 to-violet-500/40" />
+
+        {/* Metric Node 2 */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative flex size-12 items-center justify-center rounded-full border border-white/20 bg-white/5">
+            <div className="absolute inset-1 rounded-full border border-dashed border-white/20 animate-[spin_15s_linear_infinite_reverse]" />
+            <span className="font-mono text-xs font-bold text-zinc-400">00</span>
+          </div>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">DELIVERY</span>
+        </div>
+
+        {/* Neural Line */}
+        <div className="h-px w-8 bg-gradient-to-r from-white/20 via-violet-500/30 to-violet-400/40" />
+
+        {/* Metric Node 3 */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative flex size-12 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/5">
+            <div className="absolute inset-1 rounded-full border border-dashed border-violet-400/30 animate-[spin_8s_linear_infinite]" />
+            <span className="font-mono text-xs font-bold text-violet-400">AI</span>
+          </div>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">MODEL_ANS</span>
+        </div>
+      </div>
+
+      {/* Minimal Tech Tagline */}
+      <div className="relative z-10 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+        <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
+        AWAITING SUBMISSION FOR ANALYTICS
+      </div>
     </div>
   )
 }
@@ -724,17 +692,17 @@ function ResponseSection({
               {(response.length > 0 ||
                 status === "feedback" ||
                 status === "error") && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={onClearAnswer}
-                  disabled={status === "submitting"}
-                  className="h-10 rounded-xl px-3.5 text-xs font-semibold"
-                >
-                  <Trash2 className="size-4" data-icon="inline-start" />
-                  Clear Answer
-                </Button>
-              )}
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={onClearAnswer}
+                    disabled={status === "submitting"}
+                    className="h-10 rounded-xl px-3.5 text-xs font-semibold"
+                  >
+                    <Trash2 className="size-4" data-icon="inline-start" />
+                    Clear Answer
+                  </Button>
+                )}
 
               <Button
                 type="button"
@@ -992,15 +960,15 @@ export function PracticeWorkspace() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary/80">
               <span className="size-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(45,212,191,.75)]" />
-              Interview practice 
+              Practice session
             </div>
             <h2 className="text-[25px] leading-tight font-semibold tracking-[-0.045em] text-zinc-100 sm:text-[30px]">
               Practice with intention.
             </h2>
-            {/* <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
               Sharpen your technical thinking and communication, one thoughtful
               answer at a time.
-            </p> */}
+            </p>
           </div>
           <div className="hidden items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[11px] text-zinc-500 md:flex">
             <span className="size-1.5 rounded-full bg-emerald-400" />
@@ -1025,7 +993,7 @@ export function PracticeWorkspace() {
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "question" &&
-              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+            "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
           <StepHeading
@@ -1047,11 +1015,7 @@ export function PracticeWorkspace() {
               questionNumber={questionIndex + 1}
             />
           ) : (
-            <EmptyStateCard
-              variant="question"
-              title="Ready to practice?"
-              description="Select topic & level above, then generate your question."
-            />
+            <QuestionEmptyState />
           )}
         </div>
 
@@ -1074,12 +1038,7 @@ export function PracticeWorkspace() {
         ) : (
           <section aria-labelledby="standby-response-heading">
             <StepHeading number="02" title="Your response" status="standby" />
-            <EmptyStateCard
-              variant="response"
-              title="Workspace on standby"
-              description="Generate a question above to activate audio & text input."
-              compact
-            />
+            <ResponseEmptyState />
           </section>
         )}
 
@@ -1092,7 +1051,7 @@ export function PracticeWorkspace() {
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "feedback" &&
-              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+            "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
           <div className="border-t border-white/[0.07] pt-7 sm:pt-8">
@@ -1108,12 +1067,7 @@ export function PracticeWorkspace() {
             />
 
             {!submitted && !isSubmitting ? (
-              <EmptyStateCard
-                variant="feedback"
-                title="Awaiting response"
-                description="Score, feedback, and Senior Model Answer will appear after submission."
-                compact
-              />
+              <FeedbackEmptyState />
             ) : (
               <>
                 <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
