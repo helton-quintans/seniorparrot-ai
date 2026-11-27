@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { createJSONStorage, persist } from "zustand/middleware"
 import {
   practiceFeedbackSchema,
   type PracticeFeedback,
@@ -64,7 +65,7 @@ interface PracticeState {
   setTopic: (topic: TopicId) => void
   setLevel: (level: LevelId) => void
   generateNextQuestion: () => void
-  setAnswer: (answer: string) => void
+  setAnswer: (nextAnswer: string) => void
   setStatus: (status: PracticeStatus) => void
   setSpeechMessage: (message: string) => void
   submitMockFeedback: () => boolean
@@ -73,20 +74,11 @@ interface PracticeState {
   submitFeedback: () => Promise<void>
 }
 
-export const usePracticeStore = create<PracticeState>((set, get) => ({
-  topic: "system-design",
-  level: "senior",
-  questionIndex: 0,
-  question:
-    "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
-  answer: "",
-  status: "idle",
-  speechMessage: "",
-  feedback: null,
-
-  setTopic: (topic) =>
-    set({
-      topic,
+export const usePracticeStore = create<PracticeState>()(
+  persist(
+    (set, get) => ({
+      topic: "system-design",
+      level: "senior",
       questionIndex: 0,
       question:
         "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
@@ -94,158 +86,191 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
       status: "idle",
       speechMessage: "",
       feedback: null,
-    }),
 
-  setLevel: (level) =>
-    set({
-      level,
-    }),
-
-  generateNextQuestion: () =>
-    set((state) => ({
-      questionIndex: state.questionIndex + 1,
-      answer: "",
-      status: "idle",
-      speechMessage: "",
-      feedback: null,
-    })),
-
-setAnswer: (nextAnswer) =>
-    set((state) => {
-      if (nextAnswer.length > MAX_ANSWER_CHARS) {
-        return {
-          answer: nextAnswer.slice(0, MAX_ANSWER_CHARS),
-          feedback: null,
-          status: "error",
-          speechMessage: `Answer is capped at ${MAX_ANSWER_CHARS} characters. Extra text was trimmed.`,
-        }
-      }
-
-      const shouldResetStatus =
-        state.status === "feedback" || state.status === "error"
-
-      return {
-        answer: nextAnswer,
-        feedback: null,
-        status: shouldResetStatus ? "idle" : state.status,
-        speechMessage: state.status === "error" ? "" : state.speechMessage,
-      }
-    }),
-
-  setStatus: (status) => set({ status }),
-
-  setSpeechMessage: (speechMessage) => set({ speechMessage }),
-
-  submitMockFeedback: () => {
-    const currentAnswer = get().answer.trim()
-    if (!currentAnswer) {
-      set({
-        status: "error",
-        speechMessage: "Write or dictate an answer before submitting.",
-      })
-      return false
-    }
-    if (get().answer.length > MAX_ANSWER_CHARS) {
-      set({
-        status: "error",
-        speechMessage: `Answer exceeds ${MAX_ANSWER_CHARS} character limit. Please trim your response.`,
-      })
-      return false
-    }
-
-    const parsed = practiceFeedbackSchema.safeParse(MOCK_FEEDBACK)
-    if (!parsed.success) {
-      set({
-        status: "error",
-        speechMessage: "Could not validate mock feedback structure.",
-      })
-      return false
-    }
-
-    set({
-      feedback: parsed.data,
-      status: "feedback",
-      speechMessage:
-        "This is a sample review. A live AI evaluation is not connected yet.",
-    })
-    return true
-  },
-
-  submitFeedback: async () => {
-    const state = get()
-
-    // Validate answer before making request
-    if (!state.answer.trim()) {
-      set({
-        feedback: null,
-        status: "error",
-        speechMessage: "Write or dictate an answer before submitting.",
-      })
-      return
-    }
-    if (state.answer.length > MAX_ANSWER_CHARS) {
-      set({
-        feedback: null,
-        status: "error",
-        speechMessage: `Answer exceeds ${MAX_ANSWER_CHARS} character limit. Please trim your response.`,
-      })
-      return
-    }
-
-    set({ status: "submitting" })
-
-    try {
-      const response = await fetch("/api/practice/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          question: state.question,
-          topic: state.topic,
-          level: state.level,
-          answer: state.answer,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
+      setTopic: (topic) =>
         set({
-          feedback: data,
-          status: "feedback",
+          topic,
+          questionIndex: 0,
+          question:
+            "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
+          answer: "",
+          status: "idle",
           speechMessage: "",
-        })
-      } else {
-        const errData = await response.json().catch(() => ({}))
-        set({
           feedback: null,
-          status: "error",
-          speechMessage: errData.error || "Erro ao obter feedback. Tente novamente.",
+        }),
+
+      setLevel: (level) =>
+        set({
+          level,
+        }),
+
+      generateNextQuestion: () =>
+        set((state) => ({
+          questionIndex: state.questionIndex + 1,
+          answer: "",
+          status: "idle",
+          speechMessage: "",
+          feedback: null,
+        })),
+
+      setAnswer: (nextAnswer) =>
+        set((state) => {
+          if (nextAnswer.length > MAX_ANSWER_CHARS) {
+            return {
+              answer: nextAnswer.slice(0, MAX_ANSWER_CHARS),
+              feedback: null,
+              status: "error",
+              speechMessage: `Answer is capped at ${MAX_ANSWER_CHARS} characters. Extra text was trimmed.`,
+            }
+          }
+
+          const shouldResetStatus =
+            state.status === "feedback" || state.status === "error"
+
+          return {
+            answer: nextAnswer,
+            feedback: null,
+            status: shouldResetStatus ? "idle" : state.status,
+            speechMessage: state.status === "error" ? "" : state.speechMessage,
+          }
+        }),
+
+      setStatus: (status) => set({ status }),
+
+      setSpeechMessage: (speechMessage) => set({ speechMessage }),
+
+      submitMockFeedback: () => {
+        const currentAnswer = get().answer.trim()
+        if (!currentAnswer) {
+          set({
+            status: "error",
+            speechMessage: "Write or dictate an answer before submitting.",
+          })
+          return false
+        }
+        if (get().answer.length > MAX_ANSWER_CHARS) {
+          set({
+            status: "error",
+            speechMessage: `Answer exceeds ${MAX_ANSWER_CHARS} character limit. Please trim your response.`,
+          })
+          return false
+        }
+
+        const parsed = practiceFeedbackSchema.safeParse(MOCK_FEEDBACK)
+        if (!parsed.success) {
+          set({
+            status: "error",
+            speechMessage: "Could not validate mock feedback structure.",
+          })
+          return false
+        }
+
+        set({
+          feedback: parsed.data,
+          status: "feedback",
+          speechMessage:
+            "This is a sample review. A live AI evaluation is not connected yet.",
         })
-      }
-    } catch {
-      set({
-        feedback: null,
-        status: "error",
-        speechMessage:
-          "Erro de rede. Verifique a conexão ou tente novamente mais tarde.",
-      })
+        return true
+      },
+
+      submitFeedback: async () => {
+        const state = get()
+
+        if (!state.answer.trim()) {
+          set({
+            feedback: null,
+            status: "error",
+            speechMessage: "Write or dictate an answer before submitting.",
+          })
+          return
+        }
+        if (state.answer.length > MAX_ANSWER_CHARS) {
+          set({
+            feedback: null,
+            status: "error",
+            speechMessage: `Answer exceeds ${MAX_ANSWER_CHARS} character limit. Please trim your response.`,
+          })
+          return
+        }
+
+        set({ status: "submitting" })
+
+        try {
+          const response = await fetch("/api/practice/feedback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: state.question,
+              topic: state.topic,
+              level: state.level,
+              answer: state.answer,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            set({
+              feedback: data,
+              status: "feedback",
+              speechMessage: "",
+            })
+          } else {
+            const errData = await response.json().catch(() => ({}))
+            set({
+              feedback: null,
+              status: "error",
+              speechMessage:
+                errData.error || "Erro ao obter feedback. Tente novamente.",
+            })
+          }
+        } catch {
+          set({
+            feedback: null,
+            status: "error",
+            speechMessage:
+              "Erro de rede. Verifique a conexão ou tente novamente mais tarde.",
+          })
+        }
+      },
+
+      resetSession: () =>
+        set({
+          answer: "",
+          status: "idle",
+          speechMessage: "",
+          feedback: null,
+        }),
+
+      clearAnswer: () =>
+        set({
+          answer: "",
+          status: "idle",
+          speechMessage: "",
+          feedback: null,
+        }),
+    }),
+    {
+      name: "seniorparrot-practice-session",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      // Exclude transient UI/recording states from storage
+      partialize: (state) => ({
+        topic: state.topic,
+        level: state.level,
+        questionIndex: state.questionIndex,
+        question: state.question,
+        answer: state.answer,
+        feedback: state.feedback,
+      }),
+      // Avoid restoring stale "recording" or "submitting" states after reload
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        state.speechMessage = ""
+        state.status = state.feedback ? "feedback" : "idle"
+      },
     }
-  },
-
-  resetSession: () =>
-    set({
-      answer: "",
-      status: "idle",
-      speechMessage: "",
-      feedback: null,
-    }),
-
-  clearAnswer: () =>
-    set({
-      answer: "",
-      status: "idle",
-      speechMessage: "",
-      feedback: null,
-    }),
-}))
+  )
+)

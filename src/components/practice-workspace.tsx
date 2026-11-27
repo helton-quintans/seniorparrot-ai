@@ -40,7 +40,11 @@ import {
   type TopicId,
   type PracticeStatus,
 } from "@/stores/practice-store"
-import { FeedbackEmptyState, QuestionEmptyState, ResponseEmptyState } from "./practice-empty-states"
+import {
+  FeedbackEmptyState,
+  QuestionEmptyState,
+  ResponseEmptyState,
+} from "./practice-empty-states"
 
 type Question = {
   category: string
@@ -55,10 +59,10 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   onresult:
-  | ((event: {
-    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-  }) => void)
-  | null
+    | ((event: {
+        results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+      }) => void)
+    | null
   onerror: (() => void) | null
   onend: (() => void) | null
 }
@@ -574,17 +578,17 @@ function ResponseSection({
               {(response.length > 0 ||
                 status === "feedback" ||
                 status === "error") && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={onClearAnswer}
-                    disabled={status === "submitting"}
-                    className="h-10 rounded-xl px-3.5 text-xs font-semibold"
-                  >
-                    <Trash2 className="size-4" data-icon="inline-start" />
-                    Clear Answer
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={onClearAnswer}
+                  disabled={status === "submitting"}
+                  className="h-10 rounded-xl px-3.5 text-xs font-semibold"
+                >
+                  <Trash2 className="size-4" data-icon="inline-start" />
+                  Clear Answer
+                </Button>
+              )}
 
               <Button
                 type="button"
@@ -659,10 +663,12 @@ export function PracticeWorkspace() {
   const setSpeechMessage = usePracticeStore((state) => state.setSpeechMessage)
   const submitFeedback = usePracticeStore((state) => state.submitFeedback)
 
-  const [hasGeneratedQuestion, setHasGeneratedQuestion] = useState(false)
   const [highlightedPanel, setHighlightedPanel] = useState<
     "question" | "feedback" | null
   >(null)
+
+  const hasGeneratedQuestion =
+    questionIndex > 0 || feedback !== null || response.trim().length > 0
 
   const isRecording = status === "recording"
   const isSubmitting = status === "submitting"
@@ -736,7 +742,6 @@ export function PracticeWorkspace() {
   function handleGenerateQuestion() {
     if (isSubmitting) return
     stopRecognition()
-    setHasGeneratedQuestion(true)
     generateNextQuestion()
     requestAnimationFrame(() => {
       focusAndHighlight("question")
@@ -875,51 +880,47 @@ export function PracticeWorkspace() {
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "question" &&
-            "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
           <StepHeading
             number="01"
             title="Question"
-            detail={
-              currentQuestion
-                ? "Read carefully and structure your response"
-                : "Choose a topic and level to begin"
-            }
+            detail="Choose a topic and level to begin"
             status={currentQuestion ? "complete" : "active"}
           />
-
           {currentQuestion ? (
             <QuestionCard
-              key={`${topic}-${questionIndex}`}
-              question={currentQuestion}
               level={level}
-              questionNumber={questionIndex + 1}
+              question={currentQuestion}
+              questionNumber={questionIndex}
             />
           ) : (
             <QuestionEmptyState />
           )}
         </div>
 
-        {/* STEP 02: RESPONSE */}
+        {/* STEP 02: YOUR RESPONSE */}
         {currentQuestion ? (
           <ResponseSection
-            response={response}
-            onResponseChange={(value) => {
-              setAnswer(value)
-              setSpeechMessage("")
-            }}
             isRecording={isRecording}
-            onToggleRecording={handleToggleRecording}
-            speechMessage={speechMessage}
-            onSubmit={handleSubmit}
-            submitted={submitted}
-            status={status}
             onClearAnswer={handleClearAnswer}
+            onResponseChange={setAnswer}
+            onSubmit={handleSubmit}
+            onToggleRecording={handleToggleRecording}
+            response={response}
+            speechMessage={speechMessage}
+            status={status}
+            submitted={submitted}
           />
         ) : (
-          <section aria-labelledby="standby-response-heading">
-            <StepHeading number="02" title="Your response" status="standby" />
+          <section aria-labelledby="response-empty-heading">
+            <StepHeading
+              number="02"
+              title="Your response"
+              detail="Generate a question first"
+              status="standby"
+            />
             <ResponseEmptyState />
           </section>
         )}
@@ -927,78 +928,28 @@ export function PracticeWorkspace() {
         {/* STEP 03: FEEDBACK & MODEL ANSWER */}
         <section
           ref={feedbackPanelRef}
-          id="feedback-panel"
-          aria-label="AI feedback"
           tabIndex={-1}
+          aria-labelledby="feedback-heading"
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "feedback" &&
-            "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
-          <div className="border-t border-white/[0.07] pt-7 sm:pt-8">
-            <StepHeading
-              number="03"
-              title="Feedback & model answer"
-              detail={
-                submitted
-                  ? "Review your breakdown step by step"
-                  : "Available after submitting your answer"
-              }
-              status={submitted ? "complete" : "standby"}
-            />
-
-            {!submitted && !isSubmitting ? (
-              <FeedbackEmptyState />
-            ) : (
-              <>
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
-                  <div>
-                    <p className="section-kicker">THE DEBRIEF</p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                      <h3 className="text-lg font-semibold tracking-tight text-zinc-100">
-                        AI feedback
-                      </h3>
-                      <Badge
-                        variant="outline"
-                        className="border-white/10 bg-white/[0.035] text-[10px] font-medium text-zinc-500"
-                      >
-                        LIVE REVIEW
-                      </Badge>
-                    </div>
-                  </div>
-                  <span className="max-w-[340px] text-xs leading-5 text-zinc-500">
-                    Feedback generated for your submitted answer.
-                  </span>
-                </div>
-
-                {isSubmitting ? (
-                  <ThinkingPanel message="Evaluating your response..." />
-                ) : (
-                  <PracticeFeedback
-                    key={
-                      feedback
-                        ? JSON.stringify(feedback.seniorModelAnswer.answer)
-                        : "empty"
-                    }
-                    submitted={submitted}
-                    feedback={feedback}
-                  />
-                )}
-              </>
-            )}
-          </div>
+          <StepHeading
+            number="03"
+            title="Feedback & model answer"
+            detail="Available after submitting your answer"
+            status={submitted ? "complete" : "standby"}
+          />
+          {isSubmitting ? (
+            <ThinkingPanel message="Evaluating your response..." />
+          ) : feedback ? (
+            <PracticeFeedback feedback={feedback} submitted={submitted} />
+          ) : (
+            <FeedbackEmptyState />
+          )}
         </section>
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4 text-[11px] text-zinc-600">
-          <span className="flex items-center gap-1.5">
-            <Headphones className="size-3.5" />
-            Built for the details that make a senior answer stand out.
-          </span>
-          <span className="font-mono tracking-[0.08em]">
-            SENIORPARROT AI <span className="mx-1.5 text-zinc-800">/</span> 001
-          </span>
-        </footer>
       </div>
     </main>
   )
