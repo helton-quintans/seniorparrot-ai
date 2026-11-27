@@ -35,17 +35,20 @@ import { PracticeFeedback } from "@/components/practice-feedback"
 import { ThinkingFace } from "@/components/thinking-face"
 import { cn } from "@/lib/utils"
 import {
+  practiceQuestions,
+  type PracticeQuestion,
+} from "@/data/practice-questions"
+import {
   usePracticeStore,
   type LevelId,
   type TopicId,
   type PracticeStatus,
 } from "@/stores/practice-store"
-
-type Question = {
-  category: string
-  prompt: string
-  translation: string
-}
+import {
+  FeedbackEmptyState,
+  QuestionEmptyState,
+  ResponseEmptyState,
+} from "./practice-empty-states"
 
 type SpeechRecognitionLike = {
   lang: string
@@ -54,10 +57,10 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   onresult:
-  | ((event: {
-    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-  }) => void)
-  | null
+    | ((event: {
+        results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+      }) => void)
+    | null
   onerror: (() => void) | null
   onend: (() => void) | null
 }
@@ -70,73 +73,6 @@ const topics: { id: TopicId; label: string; icon: typeof PanelsTopLeft }[] = [
   { id: "system-design", label: "System Design", icon: CircleHelp },
   { id: "behavioral", label: "Behavioral (STAR)", icon: UserRound },
 ]
-
-const questions: Record<TopicId, Question[]> = {
-  frontend: [
-    {
-      category: "Frontend Architecture",
-      prompt:
-        "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
-      translation:
-        "Como você estruturaria uma aplicação React de grande porte para que as equipes de produto pudessem entregar funcionalidades de forma independente, sem duplicar sistemas de design ou criar dependências fortes entre funcionalidades?",
-    },
-    {
-      category: "Frontend Architecture",
-      prompt:
-        "A core application bundle has grown significantly as the product scaled. How would you identify the biggest opportunities to improve load time without compromising the user experience?",
-      translation:
-        "O bundle principal da aplicação cresceu bastante à medida que o produto escalou. Como você identificaria as melhores oportunidades para reduzir o tempo de carregamento sem comprometer a experiência do usuário?",
-    },
-  ],
-  react: [
-    {
-      category: "React Internals",
-      prompt:
-        "A complex screen feels sluggish during user interactions even though its components use memoization. How would you investigate the render path and decide what to optimize?",
-      translation:
-        "Uma tela complexa parece lenta durante as interações, embora seus componentes usem memoização. Como você investigaria o fluxo de renderização e decidiria o que otimizar?",
-    },
-    {
-      category: "React Internals",
-      prompt:
-        "Explain how concurrent rendering changes the way you think about expensive work, effects, and state updates in a React application.",
-      translation:
-        "Explique como a renderização concorrente muda a forma de pensar sobre operações custosas, effects e atualizações de estado em uma aplicação React.",
-    },
-  ],
-  "system-design": [
-    {
-      category: "System Design",
-      prompt:
-        "Imagine you are building a real-time dashboard with high-frequency updates. How would you prevent excessive re-renders and structure the state management architecture?",
-      translation:
-        "Imagine que você está criando um dashboard em tempo real com atualizações frequentes. Como evitaria renderizações excessivas e estruturaria a arquitetura de gerenciamento de estado?",
-    },
-    {
-      category: "System Design",
-      prompt:
-        "Design a frontend architecture for a dashboard that streams updates from thousands of devices. How would you balance data freshness, rendering cost, and resilience to reconnects?",
-      translation:
-        "Desenhe uma arquitetura frontend para um dashboard que recebe atualizações de milhares de dispositivos. Como equilibraria a atualização dos dados, o custo de renderização e a resiliência durante reconexões?",
-    },
-  ],
-  behavioral: [
-    {
-      category: "Behavioral (STAR)",
-      prompt:
-        "Tell me about a time you had to align several teams around a technical direction. How did you handle disagreement, and what changed because of your approach?",
-      translation:
-        "Conte sobre uma ocasião em que você precisou alinhar várias equipes em torno de uma direção técnica. Como lidou com as divergências e o que mudou por causa da sua abordagem?",
-    },
-    {
-      category: "Behavioral (STAR)",
-      prompt:
-        "Describe a difficult technical decision you made with incomplete information. What trade-offs did you consider, and what did you learn from the outcome?",
-      translation:
-        "Descreva uma decisão técnica difícil que você tomou com informações incompletas. Quais trade-offs considerou e o que aprendeu com o resultado?",
-    },
-  ],
-}
 
 /* ============================================================================
    HEADER, STEP HEADINGS & EMPTY STATES
@@ -233,125 +169,6 @@ function StepHeading({
             {detail}
           </span>
         )}
-      </div>
-    </div>
-  )
-}
-
-function QuestionEmptyState() {
-  return (
-    <div className="group relative flex min-h-[280px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0e11] p-8 text-center transition-all duration-500 hover:border-primary/30">
-      {/* Background Subtle Grid & Ambient Glow */}
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(#5eead4_1px,transparent_1px)] opacity-[0.12] [background-size:20px_20px]"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute size-64 rounded-full bg-primary/10 blur-3xl transition-all duration-700 group-hover:bg-primary/20"
-        aria-hidden="true"
-      />
-
-      {/* Interactive Visual Core */}
-      <div className="relative flex items-center justify-center">
-        {/* Outer Pulsing Rings */}
-        <div className="absolute size-44 rounded-full border border-primary/20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] opacity-40" />
-        <div className="absolute size-36 rounded-full border border-dashed border-primary/30 animate-[spin_30s_linear_infinite]" />
-
-        {/* Central Hex/Core Icon */}
-        <div className="relative flex size-16 items-center justify-center rounded-2xl border border-primary/50 bg-[#101418] shadow-[0_0_30px_rgba(94,234,212,0.25)] transition-transform duration-300 group-hover:scale-105">
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-transparent" />
-          <span className="font-mono text-2xl font-black tracking-tighter text-primary">
-            &lt;/&gt;
-          </span>
-        </div>
-      </div>
-
-      {/* Minimal Tech Tagline */}
-      <div className="relative z-10 mt-8 flex items-center gap-2">
-        <span className="size-1.5 rounded-full bg-primary" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-400">
-          SELECT TOPIC TO START SESSION
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function ResponseEmptyState() {
-  return (
-    <div className="group relative flex min-h-[220px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0e11] p-6 text-center transition-all duration-500 hover:border-primary/30">
-      {/* Glow Effect */}
-      <div
-        className="pointer-events-none absolute -bottom-10 size-48 rounded-full bg-primary/[0.07] blur-2xl transition-all duration-500 group-hover:bg-primary/[0.15]"
-        aria-hidden="true"
-      />
-
-      {/* High-Tech Equalizer Spectrum Visual */}
-      <div className="relative mb-4 flex items-end gap-1.5 h-12 px-6 py-2 rounded-2xl border border-white/[0.08] bg-[#12151a]/80 shadow-inner">
-        {[40, 70, 25, 90, 55, 30, 80, 100, 65, 45, 85, 35, 95, 50, 75, 20, 60].map((h, i) => (
-          <span
-            key={i}
-            className="w-1 rounded-full bg-gradient-to-t from-primary/30 to-primary transition-all"
-            style={{
-              height: `${h}%`,
-              animation: `pulse 1.5s ease-in-out infinite ${i * 90}ms`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Minimal Status Capsule */}
-      <div className="relative z-10 flex items-center gap-2 rounded-full border border-white/10 bg-[#161a20] px-3.5 py-1 text-[11px] font-mono text-zinc-400">
-        <span className="size-2 rounded-full bg-primary-400/80 animate-ping" />
-        <span className="text-zinc-300">USE YOUR VOICE OR TYPE</span>
-      </div>
-    </div>
-  )
-}
-
-function FeedbackEmptyState() {
-  return (
-    <div className="group relative flex min-h-[230px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0e11] p-6 text-center transition-all duration-500 hover:border-violet-500/30">
-      {/* Radar HUD Visual */}
-      <div className="relative mb-5 flex items-center justify-center gap-8">
-        {/* Metric Node 1 */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="relative flex size-12 items-center justify-center rounded-full border border-primary/40 bg-primary/5">
-            <div className="absolute inset-1 rounded-full border border-dashed border-primary/30 animate-[spin_10s_linear_infinite]" />
-            <span className="font-mono text-xs font-bold text-primary">00</span>
-          </div>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">TECH_DEPTH</span>
-        </div>
-
-        {/* Neural Line */}
-        <div className="h-px w-8 bg-gradient-to-r from-primary/40 via-white/20 to-violet-500/40" />
-
-        {/* Metric Node 2 */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="relative flex size-12 items-center justify-center rounded-full border border-white/20 bg-white/5">
-            <div className="absolute inset-1 rounded-full border border-dashed border-white/20 animate-[spin_15s_linear_infinite_reverse]" />
-            <span className="font-mono text-xs font-bold text-zinc-400">00</span>
-          </div>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">DELIVERY</span>
-        </div>
-
-        {/* Neural Line */}
-        <div className="h-px w-8 bg-gradient-to-r from-white/20 via-violet-500/30 to-violet-400/40" />
-
-        {/* Metric Node 3 */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="relative flex size-12 items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/5">
-            <div className="absolute inset-1 rounded-full border border-dashed border-violet-400/30 animate-[spin_8s_linear_infinite]" />
-            <span className="font-mono text-xs font-bold text-violet-400">AI</span>
-          </div>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-500">MODEL_ANS</span>
-        </div>
-      </div>
-
-      {/* Minimal Tech Tagline */}
-      <div className="relative z-10 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">
-        <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
-        AWAITING SUBMISSION FOR ANALYTICS
       </div>
     </div>
   )
@@ -466,7 +283,7 @@ function QuestionCard({
   level,
   questionNumber,
 }: {
-  question: Question
+  question: PracticeQuestion
   level: LevelId
   questionNumber: number
 }) {
@@ -692,17 +509,17 @@ function ResponseSection({
               {(response.length > 0 ||
                 status === "feedback" ||
                 status === "error") && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={onClearAnswer}
-                    disabled={status === "submitting"}
-                    className="h-10 rounded-xl px-3.5 text-xs font-semibold"
-                  >
-                    <Trash2 className="size-4" data-icon="inline-start" />
-                    Clear Answer
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={onClearAnswer}
+                  disabled={status === "submitting"}
+                  className="h-10 rounded-xl px-3.5 text-xs font-semibold"
+                >
+                  <Trash2 className="size-4" data-icon="inline-start" />
+                  Clear Answer
+                </Button>
+              )}
 
               <Button
                 type="button"
@@ -777,10 +594,12 @@ export function PracticeWorkspace() {
   const setSpeechMessage = usePracticeStore((state) => state.setSpeechMessage)
   const submitFeedback = usePracticeStore((state) => state.submitFeedback)
 
-  const [hasGeneratedQuestion, setHasGeneratedQuestion] = useState(false)
   const [highlightedPanel, setHighlightedPanel] = useState<
     "question" | "feedback" | null
   >(null)
+
+  const hasGeneratedQuestion =
+    questionIndex > 0 || feedback !== null || response.trim().length > 0
 
   const isRecording = status === "recording"
   const isSubmitting = status === "submitting"
@@ -791,9 +610,11 @@ export function PracticeWorkspace() {
   const questionPanelRef = useRef<HTMLDivElement | null>(null)
   const feedbackPanelRef = useRef<HTMLElement | null>(null)
 
-  const currentQuestion = hasGeneratedQuestion
-    ? questions[topic][questionIndex % questions[topic].length]
-    : null
+  const levelQuestions = practiceQuestions[topic][level]
+  const currentQuestion: PracticeQuestion | null =
+    hasGeneratedQuestion && levelQuestions.length > 0
+      ? levelQuestions[questionIndex % levelQuestions.length]
+      : null
 
   useEffect(() => {
     return () => {
@@ -854,7 +675,6 @@ export function PracticeWorkspace() {
   function handleGenerateQuestion() {
     if (isSubmitting) return
     stopRecognition()
-    setHasGeneratedQuestion(true)
     generateNextQuestion()
     requestAnimationFrame(() => {
       focusAndHighlight("question")
@@ -993,26 +813,27 @@ export function PracticeWorkspace() {
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "question" &&
-            "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
           <StepHeading
             number="01"
-            title="Question"
+            title="Interview question"
             detail={
               currentQuestion
-                ? "Read carefully and structure your response"
-                : "Choose a topic and level to begin"
+                ? `${currentQuestion.category} • ${
+                    level === "senior" ? "Senior" : "Staff"
+                  }`
+                : "Generate a prompt to begin"
             }
             status={currentQuestion ? "complete" : "active"}
           />
 
           {currentQuestion ? (
             <QuestionCard
-              key={`${topic}-${questionIndex}`}
               question={currentQuestion}
               level={level}
-              questionNumber={questionIndex + 1}
+              questionNumber={questionIndex}
             />
           ) : (
             <QuestionEmptyState />
@@ -1023,10 +844,7 @@ export function PracticeWorkspace() {
         {currentQuestion ? (
           <ResponseSection
             response={response}
-            onResponseChange={(value) => {
-              setAnswer(value)
-              setSpeechMessage("")
-            }}
+            onResponseChange={setAnswer}
             isRecording={isRecording}
             onToggleRecording={handleToggleRecording}
             speechMessage={speechMessage}
@@ -1036,87 +854,41 @@ export function PracticeWorkspace() {
             onClearAnswer={handleClearAnswer}
           />
         ) : (
-          <section aria-labelledby="standby-response-heading">
-            <StepHeading number="02" title="Your response" status="standby" />
-            <ResponseEmptyState />
-          </section>
+          <ResponseEmptyState />
         )}
 
-        {/* STEP 03: FEEDBACK & MODEL ANSWER */}
+        {/* STEP 03: FEEDBACK */}
         <section
           ref={feedbackPanelRef}
-          id="feedback-panel"
-          aria-label="AI feedback"
+          aria-labelledby="feedback-heading"
           tabIndex={-1}
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "feedback" &&
-            "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
+              "ring-2 ring-primary/50 shadow-[0_0_32px_-8px_rgba(94,234,212,0.35)]"
           )}
         >
-          <div className="border-t border-white/[0.07] pt-7 sm:pt-8">
-            <StepHeading
-              number="03"
-              title="Feedback & model answer"
-              detail={
-                submitted
-                  ? "Review your breakdown step by step"
-                  : "Available after submitting your answer"
-              }
-              status={submitted ? "complete" : "standby"}
-            />
+          <StepHeading
+            number="03"
+            title="Evaluation & feedback"
+            detail="Structured review of technical depth and English delivery"
+            status={
+              isSubmitting
+                ? "active"
+                : feedback
+                ? "complete"
+                : "standby"
+            }
+          />
 
-            {!submitted && !isSubmitting ? (
-              <FeedbackEmptyState />
-            ) : (
-              <>
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3 px-0.5">
-                  <div>
-                    <p className="section-kicker">THE DEBRIEF</p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                      <h3 className="text-lg font-semibold tracking-tight text-zinc-100">
-                        AI feedback
-                      </h3>
-                      <Badge
-                        variant="outline"
-                        className="border-white/10 bg-white/[0.035] text-[10px] font-medium text-zinc-500"
-                      >
-                        LIVE REVIEW
-                      </Badge>
-                    </div>
-                  </div>
-                  <span className="max-w-[340px] text-xs leading-5 text-zinc-500">
-                    Feedback generated for your submitted answer.
-                  </span>
-                </div>
-
-                {isSubmitting ? (
-                  <ThinkingPanel message="Evaluating your response..." />
-                ) : (
-                  <PracticeFeedback
-                    key={
-                      feedback
-                        ? JSON.stringify(feedback.seniorModelAnswer.answer)
-                        : "empty"
-                    }
-                    submitted={submitted}
-                    feedback={feedback}
-                  />
-                )}
-              </>
-            )}
-          </div>
+          {isSubmitting ? (
+            <ThinkingPanel message="Evaluating your response..." />
+          ) : feedback ? (
+            <PracticeFeedback feedback={feedback} submitted={submitted} />
+          ) : (
+            <FeedbackEmptyState />
+          )}
         </section>
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4 text-[11px] text-zinc-600">
-          <span className="flex items-center gap-1.5">
-            <Headphones className="size-3.5" />
-            Built for the details that make a senior answer stand out.
-          </span>
-          <span className="font-mono tracking-[0.08em]">
-            SENIORPARROT AI <span className="mx-1.5 text-zinc-800">/</span> 001
-          </span>
-        </footer>
       </div>
     </main>
   )
