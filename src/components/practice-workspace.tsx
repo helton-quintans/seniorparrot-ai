@@ -35,6 +35,10 @@ import { PracticeFeedback } from "@/components/practice-feedback"
 import { ThinkingFace } from "@/components/thinking-face"
 import { cn } from "@/lib/utils"
 import {
+  practiceQuestions,
+  type PracticeQuestion,
+} from "@/data/practice-questions"
+import {
   usePracticeStore,
   type LevelId,
   type TopicId,
@@ -45,12 +49,6 @@ import {
   QuestionEmptyState,
   ResponseEmptyState,
 } from "./practice-empty-states"
-
-type Question = {
-  category: string
-  prompt: string
-  translation: string
-}
 
 type SpeechRecognitionLike = {
   lang: string
@@ -75,73 +73,6 @@ const topics: { id: TopicId; label: string; icon: typeof PanelsTopLeft }[] = [
   { id: "system-design", label: "System Design", icon: CircleHelp },
   { id: "behavioral", label: "Behavioral (STAR)", icon: UserRound },
 ]
-
-const questions: Record<TopicId, Question[]> = {
-  frontend: [
-    {
-      category: "Frontend Architecture",
-      prompt:
-        "How would you structure a large React application so product teams can ship independently without creating duplicated design systems or tightly coupled features?",
-      translation:
-        "Como você estruturaria uma aplicação React de grande porte para que as equipes de produto pudessem entregar funcionalidades de forma independente, sem duplicar sistemas de design ou criar dependências fortes entre funcionalidades?",
-    },
-    {
-      category: "Frontend Architecture",
-      prompt:
-        "A core application bundle has grown significantly as the product scaled. How would you identify the biggest opportunities to improve load time without compromising the user experience?",
-      translation:
-        "O bundle principal da aplicação cresceu bastante à medida que o produto escalou. Como você identificaria as melhores oportunidades para reduzir o tempo de carregamento sem comprometer a experiência do usuário?",
-    },
-  ],
-  react: [
-    {
-      category: "React Internals",
-      prompt:
-        "A complex screen feels sluggish during user interactions even though its components use memoization. How would you investigate the render path and decide what to optimize?",
-      translation:
-        "Uma tela complexa parece lenta durante as interações, embora seus componentes usem memoização. Como você investigaria o fluxo de renderização e decidiria o que otimizar?",
-    },
-    {
-      category: "React Internals",
-      prompt:
-        "Explain how concurrent rendering changes the way you think about expensive work, effects, and state updates in a React application.",
-      translation:
-        "Explique como a renderização concorrente muda a forma de pensar sobre operações custosas, effects e atualizações de estado em uma aplicação React.",
-    },
-  ],
-  "system-design": [
-    {
-      category: "System Design",
-      prompt:
-        "Imagine you are building a real-time dashboard with high-frequency updates. How would you prevent excessive re-renders and structure the state management architecture?",
-      translation:
-        "Imagine que você está criando um dashboard em tempo real com atualizações frequentes. Como evitaria renderizações excessivas e estruturaria a arquitetura de gerenciamento de estado?",
-    },
-    {
-      category: "System Design",
-      prompt:
-        "Design a frontend architecture for a dashboard that streams updates from thousands of devices. How would you balance data freshness, rendering cost, and resilience to reconnects?",
-      translation:
-        "Desenhe uma arquitetura frontend para um dashboard que recebe atualizações de milhares de dispositivos. Como equilibraria a atualização dos dados, o custo de renderização e a resiliência durante reconexões?",
-    },
-  ],
-  behavioral: [
-    {
-      category: "Behavioral (STAR)",
-      prompt:
-        "Tell me about a time you had to align several teams around a technical direction. How did you handle disagreement, and what changed because of your approach?",
-      translation:
-        "Conte sobre uma ocasião em que você precisou alinhar várias equipes em torno de uma direção técnica. Como lidou com as divergências e o que mudou por causa da sua abordagem?",
-    },
-    {
-      category: "Behavioral (STAR)",
-      prompt:
-        "Describe a difficult technical decision you made with incomplete information. What trade-offs did you consider, and what did you learn from the outcome?",
-      translation:
-        "Descreva uma decisão técnica difícil que você tomou com informações incompletas. Quais trade-offs considerou e o que aprendeu com o resultado?",
-    },
-  ],
-}
 
 /* ============================================================================
    HEADER, STEP HEADINGS & EMPTY STATES
@@ -352,7 +283,7 @@ function QuestionCard({
   level,
   questionNumber,
 }: {
-  question: Question
+  question: PracticeQuestion
   level: LevelId
   questionNumber: number
 }) {
@@ -679,9 +610,11 @@ export function PracticeWorkspace() {
   const questionPanelRef = useRef<HTMLDivElement | null>(null)
   const feedbackPanelRef = useRef<HTMLElement | null>(null)
 
-  const currentQuestion = hasGeneratedQuestion
-    ? questions[topic][questionIndex % questions[topic].length]
-    : null
+  const levelQuestions = practiceQuestions[topic][level]
+  const currentQuestion: PracticeQuestion | null =
+    hasGeneratedQuestion && levelQuestions.length > 0
+      ? levelQuestions[questionIndex % levelQuestions.length]
+      : null
 
   useEffect(() => {
     return () => {
@@ -885,14 +818,21 @@ export function PracticeWorkspace() {
         >
           <StepHeading
             number="01"
-            title="Question"
-            detail="Choose a topic and level to begin"
+            title="Interview question"
+            detail={
+              currentQuestion
+                ? `${currentQuestion.category} • ${
+                    level === "senior" ? "Senior" : "Staff"
+                  }`
+                : "Generate a prompt to begin"
+            }
             status={currentQuestion ? "complete" : "active"}
           />
+
           {currentQuestion ? (
             <QuestionCard
-              level={level}
               question={currentQuestion}
+              level={level}
               questionNumber={questionIndex}
             />
           ) : (
@@ -900,36 +840,28 @@ export function PracticeWorkspace() {
           )}
         </div>
 
-        {/* STEP 02: YOUR RESPONSE */}
+        {/* STEP 02: RESPONSE */}
         {currentQuestion ? (
           <ResponseSection
-            isRecording={isRecording}
-            onClearAnswer={handleClearAnswer}
-            onResponseChange={setAnswer}
-            onSubmit={handleSubmit}
-            onToggleRecording={handleToggleRecording}
             response={response}
+            onResponseChange={setAnswer}
+            isRecording={isRecording}
+            onToggleRecording={handleToggleRecording}
             speechMessage={speechMessage}
-            status={status}
+            onSubmit={handleSubmit}
             submitted={submitted}
+            status={status}
+            onClearAnswer={handleClearAnswer}
           />
         ) : (
-          <section aria-labelledby="response-empty-heading">
-            <StepHeading
-              number="02"
-              title="Your response"
-              detail="Generate a question first"
-              status="standby"
-            />
-            <ResponseEmptyState />
-          </section>
+          <ResponseEmptyState />
         )}
 
-        {/* STEP 03: FEEDBACK & MODEL ANSWER */}
+        {/* STEP 03: FEEDBACK */}
         <section
           ref={feedbackPanelRef}
-          tabIndex={-1}
           aria-labelledby="feedback-heading"
+          tabIndex={-1}
           className={cn(
             "scroll-mt-6 rounded-2xl outline-none transition-all duration-500",
             highlightedPanel === "feedback" &&
@@ -938,10 +870,17 @@ export function PracticeWorkspace() {
         >
           <StepHeading
             number="03"
-            title="Feedback & model answer"
-            detail="Available after submitting your answer"
-            status={submitted ? "complete" : "standby"}
+            title="Evaluation & feedback"
+            detail="Structured review of technical depth and English delivery"
+            status={
+              isSubmitting
+                ? "active"
+                : feedback
+                ? "complete"
+                : "standby"
+            }
           />
+
           {isSubmitting ? (
             <ThinkingPanel message="Evaluating your response..." />
           ) : feedback ? (
